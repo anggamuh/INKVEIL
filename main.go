@@ -13,11 +13,11 @@ import (
 //go:embed web/*
 var assets embed.FS
 
-type Comic struct { Slug, Title, Genre, Description, Color string }
+type Comic struct { Slug, Title, Genre, Description, Color string; Type string }
 var catalog = []Comic{
- {"midnight","Midnight Archive","Mystery","An archivist uncovers a city that disappears at dawn.","#49364d"},
- {"ash","Ash Walker","Fantasy","A wanderer searches for the last ember.","#593a32"},
- {"orbit","Silent Orbit","Sci-fi","A lone signal changes everything.","#283c57"},
+ {"midnight","Midnight Archive","Mystery","An archivist uncovers a city that disappears at dawn.","#49364d","Manhwa"},
+ {"ash","Ash Walker","Fantasy","A wanderer searches for the last ember.","#593a32","Manga"},
+ {"orbit","Silent Orbit","Sci-fi","A lone signal changes everything.","#283c57","Manhua"},
 }
 var views = template.Must(template.ParseFS(assets,"web/*.html"))
 func render(w http.ResponseWriter, name string, data any) {
@@ -28,14 +28,16 @@ func handler() http.Handler {
  mux:=http.NewServeMux()
  mux.HandleFunc("GET /{$}",func(w http.ResponseWriter,r *http.Request){
  q:=strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+ kind:=r.URL.Query().Get("type")
  items:=[]Comic{}
- for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre),q){items=append(items,c)} }
- render(w,"home",struct{ Comics []Comic; Query string }{items,r.URL.Query().Get("q")})
+ for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre),q) && (kind=="" || strings.EqualFold(kind,c.Type)){items=append(items,c)} }
+ render(w,"home",struct{ Comics []Comic; Query, Type string; Featured Comic }{items,r.URL.Query().Get("q"),kind,catalog[0]})
  })
  mux.HandleFunc("GET /comic/{slug}",func(w http.ResponseWriter,r *http.Request){
  for _,c:=range catalog {if c.Slug==r.PathValue("slug"){render(w,"detail",c);return}}
  http.NotFound(w,r)
  })
+ mux.HandleFunc("GET /read/{slug}/{chapter}",readerHandler)
  mux.HandleFunc("GET /health",func(w http.ResponseWriter,r *http.Request){w.Write([]byte("ok"))})
  mux.HandleFunc("GET /style.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/style.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
