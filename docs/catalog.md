@@ -1,0 +1,3 @@
+# Local catalog
+
+On first startup INKVEIL creates data/catalog.json. Stop the server before editing this JSON, then restart. Chapters are displayed in array order; Number is a unique identifier per comic. Source is a required attribution label, not proof of licensing. Only import content you are permitted to distribute. Images are local flat filenames (PNG, JPEG, WebP or GIF), placed in data/pages and referenced in the chapter Images array. Use unique filenames across comics. Set Panels to [] for image-only chapters. INKVEIL_CATALOG and INKVEIL_PAGES override local paths. No automatic remote download is implemented. This JSON store is a temporary dependency-free persistence layer, not a SQL database or concurrent editing system.

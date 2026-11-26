@@ -13,12 +13,8 @@ import (
 //go:embed web/*
 var assets embed.FS
 
-type Comic struct { Slug, Title, Genre, Description, Color string; Type string }
-var catalog = []Comic{
- {"midnight","Midnight Archive","Mystery","An archivist uncovers a city that disappears at dawn.","#49364d","Manhwa"},
- {"ash","Ash Walker","Fantasy","A wanderer searches for the last ember.","#593a32","Manga"},
- {"orbit","Silent Orbit","Sci-fi","A lone signal changes everything.","#283c57","Manhua"},
-}
+type Comic struct { Slug, Title, Genre, Description, Color string; Type string; Chapters []Chapter; Source string }
+var catalog = demoCatalog()
 var views = template.Must(template.ParseFS(assets,"web/*.html"))
 func render(w http.ResponseWriter, name string, data any) {
  w.Header().Set("Content-Type","text/html; charset=utf-8")
@@ -38,6 +34,7 @@ func handler() http.Handler {
  http.NotFound(w,r)
  })
  mux.HandleFunc("GET /read/{slug}/{chapter}",readerHandler)
+ mux.HandleFunc("GET /pages/{name}",pageHandler)
  mux.HandleFunc("GET /health",func(w http.ResponseWriter,r *http.Request){w.Write([]byte("ok"))})
  mux.HandleFunc("GET /style.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/style.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
@@ -47,6 +44,8 @@ func handler() http.Handler {
  })
 }
 func main(){
+ var err error
+ catalog,err=loadCatalog(os.Getenv("INKVEIL_CATALOG"));if err!=nil{log.Fatal(err)}
  addr:=os.Getenv("ADDR");if addr==""{addr="127.0.0.1:8080"}
  s:=&http.Server{Addr:addr,Handler:handler(),ReadHeaderTimeout:5*time.Second,ReadTimeout:15*time.Second,WriteTimeout:30*time.Second,IdleTimeout:60*time.Second}
  log.Printf("INKVEIL listening on %s",addr);log.Fatal(s.ListenAndServe())
