@@ -39,13 +39,14 @@ func buildHome(r *http.Request,items []Comic,featured Comic) HomeView {
  v.Page,_=strconv.Atoi(q.Get("page"));if v.Page<1{v.Page=1};if v.Page>v.Pages{v.Page=v.Pages}
  start:=(v.Page-1)*pageSize;end:=start+pageSize;if end>len(items){end=len(items)}
  v.Comics=items[start:end]
- for _,c:=range catalog{if len(v.Showcase)>=9{break};v.Showcase=append(v.Showcase,c)}
+ for _,c:=range items{if len(v.Showcase)>=9{break};v.Showcase=append(v.Showcase,c)}
  v.Recommended=q.Get("period")==""||q.Get("period")=="recommended"
  for _,c:=range v.Comics{if len(c.Chapters)==0{continue};recent:=c;recent.Chapters=append([]Chapter(nil),c.Chapters...);if len(recent.Chapters)>2{recent.Chapters=recent.Chapters[len(recent.Chapters)-2:]};for i,j:=0,len(recent.Chapters)-1;i<j;i,j=i+1,j-1{recent.Chapters[i],recent.Chapters[j]=recent.Chapters[j],recent.Chapters[i]};v.Releases=append(v.Releases,recent)}
  var err error
  v.Popular,err=queryRanking(r,q.Get("period"));v.PopularError=err!=nil
+ allowed:=map[string]bool{};for _,c:=range items{allowed[c.Slug]=true};filtered:=v.Popular.Rows[:0];for _,row:=range v.Popular.Rows{if allowed[row.Slug]{filtered=append(filtered,row)}};v.Popular.Rows=filtered
  if len(v.Popular.Rows)>8{v.Popular.Rows=v.Popular.Rows[:8]}
- link:=func(page int)string{p:=url.Values{};for k,s:=range map[string]string{"q":v.Query,"type":v.Type,"status":v.Status,"sort":v.Sort,"period":v.Popular.Period}{if s!=""{p.Set(k,s)}};p.Set("page",strconv.Itoa(page));if r.URL.Path=="/series"{return "/series?"+p.Encode()};return "/?"+p.Encode()+"#catalog"}
+ link:=func(page int)string{p:=url.Values{};for k,s:=range map[string]string{"q":v.Query,"type":v.Type,"status":v.Status,"sort":v.Sort,"period":q.Get("period")}{if s!=""{p.Set(k,s)}};p.Set("page",strconv.Itoa(page));if r.URL.Path=="/series"{return "/series?"+p.Encode()};return "/?"+p.Encode()+"#catalog"}
  if v.Page>1{v.PrevURL=link(v.Page-1)};if v.Page<v.Pages{v.NextURL=link(v.Page+1)}
  return v
 }
