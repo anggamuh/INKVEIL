@@ -30,7 +30,7 @@ func pageHandler(w http.ResponseWriter,r *http.Request){
  name:=r.PathValue("name")
  if !imageName.MatchString(name){http.NotFound(w,r);return}
  allowed:=false
- for _,c:=range catalog{for _,ch:=range c.Chapters{for _,img:=range ch.Images{if img==name{allowed=true}}}}
+ for _,c:=range catalog{if c.Cover==name{allowed=true};for _,ch:=range c.Chapters{for _,img:=range ch.Images{if img==name{allowed=true}}}}
  if !allowed{http.NotFound(w,r);return}
  dir:=os.Getenv("INKVEIL_PAGES");if dir==""{dir=filepath.Join("data","pages")}
  path:=filepath.Join(dir,name)

@@ -14,7 +14,7 @@ import (
 //go:embed web/*
 var assets embed.FS
 
-type Comic struct { Slug, Title, Genre, Description, Color string; Type string; Chapters []Chapter; Source string }
+type Comic struct { Slug, Title, Genre, Description, Color string; Type string; Author, Artist, Status, Cover string; Chapters []Chapter; Source string }
 var catalog = demoCatalog()
 var catalogMu sync.RWMutex
 var views = template.Must(template.ParseFS(assets,"web/*.html"))
@@ -27,9 +27,10 @@ func handler() http.Handler {
  mux.HandleFunc("GET /{$}",func(w http.ResponseWriter,r *http.Request){
  q:=strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
  kind:=r.URL.Query().Get("type")
+ status:=r.URL.Query().Get("status")
  items:=[]Comic{}
- for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre),q) && (kind=="" || strings.EqualFold(kind,c.Type)){items=append(items,c)} }
- render(w,"home",struct{ Comics []Comic; Query, Type string; Featured Comic }{items,r.URL.Query().Get("q"),kind,catalog[0]})
+ for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre+" "+c.Author+" "+c.Artist),q) && (kind=="" || strings.EqualFold(kind,c.Type)) && (status=="" || strings.EqualFold(status,c.Status)){items=append(items,c)} }
+ render(w,"home",struct{ Comics []Comic; Query, Type, Status string; Featured Comic }{items,r.URL.Query().Get("q"),kind,status,catalog[0]})
  })
  mux.HandleFunc("GET /comic/{slug}",func(w http.ResponseWriter,r *http.Request){
  for _,c:=range catalog {if c.Slug==r.PathValue("slug"){render(w,"detail",c);return}}
