@@ -51,6 +51,7 @@ func handler() http.Handler {
  mux.HandleFunc("GET /ranking",rankingHandler)
  mux.HandleFunc("GET /admin/analytics",analyticsHandler)
  mux.HandleFunc("GET /health",func(w http.ResponseWriter,r *http.Request){w.Write([]byte("ok"))})
+ mux.HandleFunc("GET /premium.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/premium.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /style.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/style.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
  w.Header().Set("X-Content-Type-Options","nosniff")
