@@ -38,7 +38,7 @@ func adminGet(w http.ResponseWriter,r *http.Request){
 func persistCatalog(items []Comic) error {
  if err:=validateCatalog(items);err!=nil{return err}
  if catalogDB!=nil{return saveSQLCatalog(items)}
-path := os.Getenv("INKVEIL_CATALOG");if path==""{path=filepath.Join("data","catalog.json")}
+ path:=os.Getenv("INKVEIL_CATALOG");if path==""{path=filepath.Join("data","catalog.json")}
  b,err:=json.MarshalIndent(items,"","  ");if err!=nil{return err}
  if err=os.MkdirAll(filepath.Dir(path),0755);err!=nil{return err}
  tmp,err:=os.CreateTemp(filepath.Dir(path),".catalog-*");if err!=nil{return err}
