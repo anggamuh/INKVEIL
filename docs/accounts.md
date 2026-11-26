@@ -1,0 +1,3 @@
+# Reader accounts
+
+MySQL is required for /account. Startup creates inkveil_users and inkveil_sessions. Passwords use bcrypt cost 12, session tokens use random 256-bit values and only SHA-256 token hashes are stored. Sessions expire after seven days. Forms have CSRF protection and bounded authentication concurrency with per-username in-memory throttling. Admin remains separate. Session cookies are scoped to /account for this phase; bookmarks/history remain browser-local and are not linked to accounts yet. Public deployment requires HTTPS, proxy-level IP rate limiting, registration abuse controls and account recovery design. Run go mod tidy to generate updated go.sum before testing. No real database auth integration tests have been run.

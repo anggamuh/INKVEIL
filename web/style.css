@@ -12,3 +12,5 @@ header nav{display:flex;gap:16px;color:#aaa6b0}.secondary{background:#222229;col
 [hidden]{display:none!important}.reader-tools{display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;margin:16px 0}.reader-tools select{background:#19191e;color:#eee;border:1px solid #34343c;border-radius:8px;padding:10px}.reader[data-width=wide]{max-width:1200px}.reader[data-width=compact]{max-width:580px}button[aria-pressed=true]{background:#282831;color:#eee}#library h1{font-size:clamp(38px,6vw,72px)}
 
 .pagination{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin:30px 0}.pagination span{color:#aaa6b0}:focus-visible{outline:2px solid #ec777a;outline-offset:3px}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+.account{max-width:900px}.account>form{max-width:180px;margin-top:20px}
