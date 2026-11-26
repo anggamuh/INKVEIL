@@ -36,13 +36,16 @@ func initAccounts()error{
  for _,q:=range []string{
  `CREATE TABLE IF NOT EXISTS inkveil_users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE, password_hash VARBINARY(100) NOT NULL) ENGINE=InnoDB`,
  `CREATE TABLE IF NOT EXISTS inkveil_sessions (token_hash BINARY(32) PRIMARY KEY, user_id BIGINT UNSIGNED NOT NULL, expires_at BIGINT NOT NULL, INDEX(expires_at), FOREIGN KEY(user_id) REFERENCES inkveil_users(id) ON DELETE CASCADE) ENGINE=InnoDB`,
+ `CREATE TABLE IF NOT EXISTS inkveil_bookmarks (user_id BIGINT UNSIGNED NOT NULL, slug VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, PRIMARY KEY(user_id,slug), FOREIGN KEY(user_id) REFERENCES inkveil_users(id) ON DELETE CASCADE) ENGINE=InnoDB`,
+ `CREATE TABLE IF NOT EXISTS inkveil_history (user_id BIGINT UNSIGNED NOT NULL, slug VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, chapter VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, read_at BIGINT NOT NULL, PRIMARY KEY(user_id,slug), INDEX(user_id,read_at), FOREIGN KEY(user_id) REFERENCES inkveil_users(id) ON DELETE CASCADE) ENGINE=InnoDB`,
  }{if _,err:=catalogDB.ExecContext(ctx,q);err!=nil{return err}}
  return nil
 }
 func randomToken()(string,error){b:=make([]byte,32);_,err:=rand.Read(b);return hex.EncodeToString(b),err}
 func tokenHash(s string)[]byte{h:=sha256.Sum256([]byte(s));return h[:]}
+func cookiePath(name string)string{if name=="inkveil_session"{return "/"};return "/account"}
 func accountCookie(w http.ResponseWriter,r *http.Request,name,value string,age int){
- http.SetCookie(w,&http.Cookie{Name:name,Value:value,Path:"/account",HttpOnly:true,SameSite:http.SameSiteStrictMode,Secure:r.TLS!=nil||publicURL()!="",MaxAge:age})
+ http.SetCookie(w,&http.Cookie{Name:name,Value:value,Path:cookiePath(name),HttpOnly:true,SameSite:http.SameSiteStrictMode,Secure:r.TLS!=nil||publicURL()!="",MaxAge:age})
 }
 func currentAccount(r *http.Request)(string,error){
  c,e:=r.Cookie("inkveil_session");if e!=nil||len(c.Value)!=64{return "",nil}
@@ -69,7 +72,7 @@ func accountPost(w http.ResponseWriter,r *http.Request){
  action:=r.PostForm.Get("action")
  if action=="logout"{
   if c,e:=r.Cookie("inkveil_session");e==nil{if _,e=catalogDB.ExecContext(r.Context(),"DELETE FROM inkveil_sessions WHERE token_hash=?",tokenHash(c.Value));e!=nil{http.Error(w,"Logout failed",503);return}}
-  accountCookie(w,r,"inkveil_session","",-1);http.Redirect(w,r,"/account",303);return
+  clearLegacySession(w,r);accountCookie(w,r,"inkveil_session","",-1);http.Redirect(w,r,"/account",303);return
  }
  if action!="login"&&action!="register"{http.Error(w,"Unknown action",400);return}
  name:=strings.ToLower(strings.TrimSpace(r.PostForm.Get("username")));pass:=r.PostForm.Get("password")
@@ -94,5 +97,5 @@ func accountPost(w http.ResponseWriter,r *http.Request){
  if c,e:=r.Cookie("inkveil_session");e==nil{if _,e=tx.ExecContext(r.Context(),"DELETE FROM inkveil_sessions WHERE token_hash=?",tokenHash(c.Value));e!=nil{http.Error(w,"Session error",503);return}}
  if _,e=tx.ExecContext(r.Context(),"INSERT INTO inkveil_sessions (token_hash,user_id,expires_at) VALUES (?,?,?)",tokenHash(token),id,time.Now().Add(7*24*time.Hour).Unix());e!=nil{http.Error(w,"Session error",503);return}
  if e=tx.Commit();e!=nil{http.Error(w,"Session error",503);return}
- accountCookie(w,r,"inkveil_session",token,7*24*3600);http.Redirect(w,r,"/account",303)
+ clearLegacySession(w,r);accountCookie(w,r,"inkveil_session",token,7*24*3600);http.Redirect(w,r,"/account",303)
 }
