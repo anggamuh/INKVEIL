@@ -22,7 +22,8 @@ func render(w http.ResponseWriter, name string, data any) {
  w.Header().Set("Content-Type","text/html; charset=utf-8")
  if err:=views.ExecuteTemplate(w,name,data);err!=nil { log.Print(err) }
 }
-func handler() http.Handler {
+func handler() http.Handler {return configuredHandler("")}
+func configuredHandler(provider string) http.Handler {
  mux:=http.NewServeMux()
  homeHandler:=func(w http.ResponseWriter,r *http.Request){
  q:=strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
@@ -32,6 +33,7 @@ func handler() http.Handler {
  for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre+" "+c.Author+" "+c.Artist),q) && (kind=="" || strings.EqualFold(kind,c.Type)) && (status=="" || strings.EqualFold(status,c.Status)){items=append(items,c)} }
  v:=buildHome(r,items,catalog[0]);if r.URL.Path=="/series"{render(w,"series",v)}else{render(w,"home",v)}
  }
+ mux.HandleFunc("GET /dex.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/dex.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /dex-reader.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/dex-reader.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /live",liveListHandler)
  mux.HandleFunc("GET /live/{id}",liveDetailHandler)
@@ -73,7 +75,7 @@ func handler() http.Handler {
  w.Header().Set("Permissions-Policy","camera=(), microphone=(), geolocation=()")
  w.Header().Set("X-Frame-Options","DENY")
  w.Header().Set("Content-Security-Policy","default-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
- if r.URL.Path=="/"&&os.Getenv("INKVEIL_LIVE_PROVIDER")=="mangadex"{dexList(w,r);return}
+ if r.Method=="GET"&&r.URL.Path=="/"&&provider=="mangadex"{dexList(w,r);return}
  if r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/"){mux.ServeHTTP(w,r);return}
  if strings.HasPrefix(r.URL.Path,"/admin/") && r.URL.Path!="/admin/analytics"{mux.ServeHTTP(w,r);return}
  if r.Method=="POST" && r.URL.Path=="/admin" {mux.ServeHTTP(w,r);return}
@@ -93,6 +95,6 @@ func main(){
  if err:=validatePublicURL();err!=nil{log.Fatal(err)}
  if err:=startPackageInbox();err!=nil{log.Fatal(err)}
  addr:=os.Getenv("ADDR");if addr==""{addr="127.0.0.1:8080"}
- s:=&http.Server{Addr:addr,Handler:handler(),ReadHeaderTimeout:5*time.Second,ReadTimeout:15*time.Second,WriteTimeout:30*time.Second,IdleTimeout:60*time.Second,MaxHeaderBytes:32<<10}
+ s:=&http.Server{Addr:addr,Handler:configuredHandler(os.Getenv("INKVEIL_LIVE_PROVIDER")),ReadHeaderTimeout:5*time.Second,ReadTimeout:15*time.Second,WriteTimeout:30*time.Second,IdleTimeout:60*time.Second,MaxHeaderBytes:32<<10}
  log.Printf("INKVEIL listening on %s",addr);log.Fatal(s.ListenAndServe())
 }
