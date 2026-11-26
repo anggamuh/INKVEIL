@@ -7,12 +7,14 @@ import (
  "path/filepath"
  "regexp"
  "strings"
+ "time"
 )
 
 type Chapter struct {
  Number string
  Panels []string
  Images []string
+ PublishedAt *time.Time `json:",omitempty"`
 }
 
 func demoCatalog() []Comic {
@@ -46,6 +48,7 @@ func validateCatalog(items []Comic) error {
   chapters:=map[string]bool{}
   for _,ch:=range c.Chapters{
    if !identifier.MatchString(ch.Number)||chapters[ch.Number]||(len(ch.Panels)==0&&len(ch.Images)==0){return fmt.Errorf("invalid chapter %q for %s",ch.Number,c.Slug)}
+   if ch.PublishedAt!=nil&&(ch.PublishedAt.IsZero()||ch.PublishedAt.After(time.Now().Add(5*time.Minute))){return fmt.Errorf("invalid publication time for %s/%s",c.Slug,ch.Number)}
    chapters[ch.Number]=true
    for _,name:=range ch.Images{if !imageName.MatchString(name){return fmt.Errorf("invalid image name %q",name)}}
   }

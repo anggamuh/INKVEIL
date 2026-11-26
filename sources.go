@@ -43,6 +43,7 @@ func mergeManifest(existing,incoming []Comic,source string)([]Comic,ImportReport
    for _,name:=range ch.Images{
     info,err:=os.Lstat(filepath.Join(dir,name));if err!=nil||!info.Mode().IsRegular(){return nil,report,fmt.Errorf("missing local page %q",name)}
    }
+   if ch.PublishedAt==nil{published:=time.Now().UTC();ch.PublishedAt=&published}
    out[i].Chapters=append(out[i].Chapters,ch);seen[ch.Number]=true;report.Chapters++
   }
  }
