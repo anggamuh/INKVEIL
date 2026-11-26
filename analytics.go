@@ -35,7 +35,7 @@ func recordView(r *http.Request,slug,chapter string){
 type rankingRow struct{Slug,Title,Cover,Type string; Views int64}
 type rankingView struct{Period string; Days int; Rows []rankingRow; Available bool}
 func rankingPeriod(s string) (string,int){
- switch s{case "today":return "today",1;case "monthly":return "monthly",30;default:return "weekly",7}
+ switch s{case "all":return "all",0;case "today":return "today",1;case "monthly":return "monthly",30;default:return "weekly",7}
 }
 func queryRanking(r *http.Request,period string)(rankingView,error){
  p,days:=rankingPeriod(period)
@@ -43,7 +43,8 @@ func queryRanking(r *http.Request,period string)(rankingView,error){
  if catalogDB==nil{return v,nil}
  now:=time.Now()
  ctx,cancel:=context.WithTimeout(r.Context(),3*time.Second);defer cancel()
- rows,err:=catalogDB.QueryContext(ctx,"SELECT slug,SUM(views) FROM inkveil_daily_views WHERE day_key BETWEEN ? AND ? AND chapter<>'' GROUP BY slug",dayKey(now.AddDate(0,0,1-days)),dayKey(now))
+ from:=0;if days>0{from=dayKey(now.AddDate(0,0,1-days))}
+ rows,err:=catalogDB.QueryContext(ctx,"SELECT slug,SUM(views) FROM inkveil_daily_views WHERE day_key BETWEEN ? AND ? AND chapter<>'' GROUP BY slug",from,dayKey(now))
  if err!=nil{return v,err};defer rows.Close()
  titles:=map[string]Comic{};for _,c:=range catalog{titles[c.Slug]=c}
  for rows.Next(){var slug string;var n int64;if err=rows.Scan(&slug,&n);err!=nil{return v,err};if c,ok:=titles[slug];ok{v.Rows=append(v.Rows,rankingRow{c.Slug,c.Title,c.Cover,c.Type,n})}}
