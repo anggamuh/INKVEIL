@@ -1,0 +1,3 @@
+# MangaDex live catalog
+
+Set INKVEIL_LIVE_PROVIDER=mangadex and start INKVEIL. Open /live. Public API metadata is fetched on demand with Indonesian or English language filter, title search, pagination, and scanlation group attribution. Chapter links redirect to the official MangaDex reader after validating chapter membership. No image proxy, downloads, login bypass, or in-site MangaDex@Home reader. This is intentionally a metadata integration while current third-party image delivery rules are verified. Do not monetize MangaDex API content; follow current provider terms. API errors/rate limits may cause temporary 503. Generic live reader and local projects remain unchanged. No live API smoke test was performed.

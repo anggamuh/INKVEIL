@@ -42,6 +42,7 @@ func liveFetch(ctx context.Context,base *url.URL,path string,q url.Values,out an
 }
 func liveFailure(w http.ResponseWriter,e error){http.Error(w,"Live source unavailable or not configured",http.StatusServiceUnavailable)}
 func liveListHandler(w http.ResponseWriter,r *http.Request){
+ if os.Getenv("INKVEIL_LIVE_PROVIDER")=="mangadex"{dexList(w,r);return}
  base,e:=liveBase();if e!=nil{liveFailure(w,e);return}
  q:=r.URL.Query().Get("q");cursor:=r.URL.Query().Get("cursor");if len(q)>200||len(cursor)>512{http.Error(w,"Invalid query",400);return}
  var data liveCatalog
@@ -58,12 +59,14 @@ func loadLiveTitle(r *http.Request,base *url.URL)(liveTitle,error){
  return t,nil
 }
 func liveDetailHandler(w http.ResponseWriter,r *http.Request){
+ if os.Getenv("INKVEIL_LIVE_PROVIDER")=="mangadex"{dexDetail(w,r);return}
  base,e:=liveBase();if e!=nil{liveFailure(w,e);return};t,e:=loadLiveTitle(r,base);if e!=nil{liveFailure(w,e);return};render(w,"live_detail",t)
 }
 func liveImageOrigin(raw string)(string,error){
  u,e:=url.Parse(raw);if e!=nil||u.Scheme!="https"||u.Hostname()==""||u.User!=nil||u.Opaque!=""{return "",fmt.Errorf("invalid image URL")};return "https://"+u.Host,nil
 }
 func liveReaderHandler(w http.ResponseWriter,r *http.Request){
+ if os.Getenv("INKVEIL_LIVE_PROVIDER")=="mangadex"{dexChapter(w,r);return}
  base,e:=liveBase();if e!=nil{liveFailure(w,e);return};t,e:=loadLiveTitle(r,base);if e!=nil{liveFailure(w,e);return}
  idx:=-1;for i,c:=range t.Chapters{if c.ID==r.PathValue("chapter"){idx=i;break}};if idx<0{http.NotFound(w,r);return}
  var p livePages;if e=liveFetch(r.Context(),base,"/titles/"+t.ID+"/chapters/"+t.Chapters[idx].ID,nil,&p);e!=nil{liveFailure(w,e);return}
