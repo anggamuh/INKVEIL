@@ -8,6 +8,7 @@ import (
  "os"
  "strings"
  "time"
+ "sync"
 )
 
 //go:embed web/*
@@ -15,6 +16,7 @@ var assets embed.FS
 
 type Comic struct { Slug, Title, Genre, Description, Color string; Type string; Chapters []Chapter; Source string }
 var catalog = demoCatalog()
+var catalogMu sync.RWMutex
 var views = template.Must(template.ParseFS(assets,"web/*.html"))
 func render(w http.ResponseWriter, name string, data any) {
  w.Header().Set("Content-Type","text/html; charset=utf-8")
@@ -35,11 +37,15 @@ func handler() http.Handler {
  })
  mux.HandleFunc("GET /read/{slug}/{chapter}",readerHandler)
  mux.HandleFunc("GET /pages/{name}",pageHandler)
+ mux.HandleFunc("GET /admin",adminGet)
+ mux.HandleFunc("POST /admin",adminPost)
  mux.HandleFunc("GET /health",func(w http.ResponseWriter,r *http.Request){w.Write([]byte("ok"))})
  mux.HandleFunc("GET /style.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/style.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
  w.Header().Set("X-Content-Type-Options","nosniff")
  w.Header().Set("Content-Security-Policy","default-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+ if r.Method=="POST" && r.URL.Path=="/admin" {mux.ServeHTTP(w,r);return}
+ catalogMu.RLock();defer catalogMu.RUnlock()
  mux.ServeHTTP(w,r)
  })
 }
