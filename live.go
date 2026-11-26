@@ -5,6 +5,7 @@ import (
  "encoding/json"
  "fmt"
  "io"
+ "log"
  "net/http"
  "net/url"
  "os"
@@ -13,7 +14,7 @@ import (
  "time"
 )
 
-type liveTitle struct { ID,Title,Description,Genre,Type string; Chapters []liveChapter }
+type liveTitle struct { ID,Title,Description,Genre,Type,CoverURL,Author,Status string; Chapters []liveChapter }
 type liveChapter struct { ID,Number string }
 type liveCatalog struct { Items []liveTitle; Next string }
 type livePages struct { Images []string }
@@ -34,13 +35,13 @@ func liveFetch(ctx context.Context,base *url.URL,path string,q url.Values,out an
  if ok&&time.Now().Before(entry.Expires){return json.Unmarshal(entry.Data,out)}
  select{case liveSlots<-struct{}{}:defer func(){<-liveSlots}();case <-ctx.Done():return ctx.Err();default:return fmt.Errorf("live source busy")}
  req,e:=http.NewRequestWithContext(ctx,"GET",key,nil);if e!=nil{return e};req.Header.Set("Accept","application/json");req.Header.Set("User-Agent","INKVEIL/1.0 (local personal reader)")
- resp,e:=liveClient.Do(req);if e!=nil{return fmt.Errorf("source unavailable")};defer resp.Body.Close()
+ resp,e:=liveClient.Do(req);if e!=nil{return fmt.Errorf("source request failed: %w",e)};defer resp.Body.Close()
  if resp.StatusCode!=200{return fmt.Errorf("source HTTP %d",resp.StatusCode)}
  b,e:=io.ReadAll(io.LimitReader(resp.Body,(2<<20)+1));if e!=nil||len(b)>2<<20{return fmt.Errorf("invalid source response size")}
- if e=json.Unmarshal(b,out);e!=nil{return fmt.Errorf("invalid source JSON")}
+ if e=json.Unmarshal(b,out);e!=nil{return fmt.Errorf("invalid source JSON: %w",e)}
  liveMu.Lock();if len(liveCache)>=128{liveCache=map[string]liveEntry{}};liveCache[key]=liveEntry{b,time.Now().Add(time.Minute)};liveMu.Unlock();return nil
 }
-func liveFailure(w http.ResponseWriter,e error){http.Error(w,"Live source unavailable or not configured",http.StatusServiceUnavailable)}
+func liveFailure(w http.ResponseWriter,e error){if e==nil{e=fmt.Errorf("unexpected provider response")};log.Printf("live source: %v",e);w.Header().Set("Content-Type","text/html; charset=utf-8");w.WriteHeader(http.StatusServiceUnavailable);render(w,"live_error",nil)}
 func liveListHandler(w http.ResponseWriter,r *http.Request){
  if os.Getenv("INKVEIL_LIVE_PROVIDER")=="mangadex"{dexList(w,r);return}
  base,e:=liveBase();if e!=nil{liveFailure(w,e);return}
