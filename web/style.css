@@ -4,3 +4,5 @@ header nav{display:flex;gap:16px;color:#aaa6b0}.secondary{background:#222229;col
 .comic-page{display:block;width:100%;height:auto;margin:auto}.panels:has(.comic-page){gap:0}
 
 .admin h1{font-size:clamp(36px,6vw,64px)}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.admin-grid article,.admin details{background:#16161b;border:1px solid #292930;border-radius:14px;padding:22px}.admin form{display:grid;gap:12px}.admin label{display:grid;gap:5px;color:#ccc}.admin textarea,.admin select{background:#19191e;color:#eee;border:1px solid #34343c;border-radius:8px;padding:10px;font:inherit;width:100%}.admin details{margin-top:24px}.admin summary{cursor:pointer}@media(max-width:700px){.admin-grid{grid-template-columns:1fr}}
+
+.admin input.permission-check{width:auto;min-width:auto}

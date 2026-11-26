@@ -32,7 +32,7 @@ func adminGet(w http.ResponseWriter,r *http.Request){
  http.SetCookie(w,&http.Cookie{Name:"inkveil_csrf",Value:csrf,Path:"/admin",HttpOnly:true,SameSite:http.SameSiteStrictMode,Secure:r.TLS!=nil})
  raw,err:=json.MarshalIndent(catalog,"","  ");if err!=nil{http.Error(w,"Catalog error",500);return}
  count:=0;for _,c:=range catalog{count+=len(c.Chapters)}
- render(w,"admin",struct{Comics []Comic; Chapters int; JSON,CSRF string}{catalog,count,string(raw),csrf})
+ render(w,"admin",struct{Comics []Comic; Chapters int; JSON,CSRF string; Sources []SourceSummary; Notice string}{catalog,count,string(raw),csrf,sourceSummaries(catalog),r.URL.Query().Get("notice")})
 }
 func persistCatalog(items []Comic) error {
  if err:=validateCatalog(items);err!=nil{return err}
@@ -59,6 +59,18 @@ func adminPost(w http.ResponseWriter,r *http.Request){
  if err=json.Unmarshal(raw,&items);err!=nil{http.Error(w,"Catalog error",500);return}
  action:=r.FormValue("action")
  switch action {
+ case "import":
+  if r.FormValue("permission")!="yes"{http.Error(w,"Permission confirmation required",400);return}
+  var incoming []Comic
+  if err=json.Unmarshal([]byte(r.FormValue("manifest")),&incoming);err!=nil{http.Error(w,"Invalid manifest",400);return}
+  source:=strings.TrimSpace(r.FormValue("source"))
+  var report ImportReport
+  items,report,err=mergeManifest(items,incoming,source)
+  if err!=nil{http.Error(w,err.Error(),400);return}
+  if err=persistCatalog(items);err!=nil{http.Error(w,"Storage error",500);return}
+  catalog=items
+  if err=appendImportLog(source,report);err!=nil{http.Redirect(w,r,"/admin?notice=import-log-failed",303);return}
+  http.Redirect(w,r,"/admin?notice="+fmt.Sprintf("imported-%d-comics-%d-chapters-skipped-%d",report.Comics,report.Chapters,report.Skipped),303);return
  case "comic":
   c:=Comic{Slug:strings.TrimSpace(r.FormValue("slug")),Title:strings.TrimSpace(r.FormValue("title")),Genre:r.FormValue("genre"),Type:r.FormValue("type"),Description:r.FormValue("description"),Source:strings.TrimSpace(r.FormValue("source"))}
   found:=false
