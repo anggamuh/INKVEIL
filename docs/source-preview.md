@@ -1,3 +1,11 @@
 # Offline source preview
 
-Save the three API responses separately as manga.json, chapters.json, chapter.json. Run `go run . preview-source manga.json chapters.json chapter.json`. The command validates identity, chapter membership, cursor metadata, filenames and dimensions, and prints a metadata summary without network requests or database writes. Source status remains numeric until its mapping is documented. No image URL generation, downloading, publication or synchronization is performed. Use authorized ZIP packages for reader testing. The recommendation envelope and general catalog list are not parsed in this release.
+Save manga detail, chapter list and chapter detail JSON separately. Existing command remains supported:
+
+`go run . preview-source manga.json chapters.json chapter.json`
+
+For multiple saved chapter list pages, pass them in capture order:
+
+`go run . preview-source manga.json chapters1.json chapters2.json chapter.json`
+
+Up to 50 list pages and 10,000 chapter entries. Rejects duplicate chapter IDs, repeated or missing continuation cursors, empty pages, and pages following a final page. HasNext reflects the last supplied page. ListPages reports number of supplied pages. Saved responses alone cannot prove continuity or completeness, even if the final page reports HasNext=false. No network calls, database writes or image downloads. Use authorized ZIP packages for reader tests.

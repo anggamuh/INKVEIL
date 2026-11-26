@@ -45,6 +45,7 @@ type sourceReport struct{
  ExternalID,Title,Year,Format,Author,Artist,Genres string
  SourceStatus int
  ListedChapters int
+ ListPages int
  HasNext bool
  PreviewChapter string
  PublishedAt time.Time
@@ -66,8 +67,12 @@ func inspectSource(m sourceEnvelope[sourceManga],list sourceEnvelope[[]sourceCha
 }
 func previewSource(paths []string)error{
  m,e:=readSource[sourceManga](paths[0]);if e!=nil{return e}
- l,e:=readSource[[]sourceChapter](paths[1]);if e!=nil{return e}
- d,e:=readSource[sourceChapterDetail](paths[2]);if e!=nil{return e}
+ if len(paths)<3||len(paths)>52{return fmt.Errorf("expected manga, 1–50 list pages and chapter detail")}
+ lists:=make([]sourceEnvelope[[]sourceChapter],0,len(paths)-2)
+ for _,path:=range paths[1:len(paths)-1]{p,e:=readSource[[]sourceChapter](path);if e!=nil{return fmt.Errorf("%s: %w",path,e)};lists=append(lists,p)}
+ l,e:=combineSourceLists(lists);if e!=nil{return e}
+ d,e:=readSource[sourceChapterDetail](paths[len(paths)-1]);if e!=nil{return e}
  v,e:=inspectSource(m,l,d);if e!=nil{return e}
+ v.ListPages=len(lists)
  enc:=json.NewEncoder(os.Stdout);enc.SetIndent("","  ");return enc.Encode(v)
 }
