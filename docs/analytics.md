@@ -1,0 +1,3 @@
+# Reading analytics
+
+MySQL mode automatically creates inkveil_daily_views. Each valid GET of a comic detail or chapter increments its daily aggregate; HEAD and missing content do not count. Public /ranking lists up to 20 existing comics by chapter page requests for today, 7 or 30 calendar days (WIB). /admin/analytics is protected by existing admin authentication. No user IDs, IP addresses or tracking cookies are collected for analytics. These are approximate page requests, not unique readers: reloads and bots can count, and busy or failed writes can be dropped. No historical backfill, bot filtering or retention cleanup. Monitor table size and add abuse controls before public deployment. Run tests and verify MySQL counters locally.

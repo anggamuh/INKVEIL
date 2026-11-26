@@ -33,7 +33,7 @@ func handler() http.Handler {
  render(w,"home",buildHome(r,items,catalog[0]))
  })
  mux.HandleFunc("GET /comic/{slug}",func(w http.ResponseWriter,r *http.Request){
- for _,c:=range catalog {if c.Slug==r.PathValue("slug"){render(w,"detail",c);return}}
+ for _,c:=range catalog {if c.Slug==r.PathValue("slug"){recordView(r,c.Slug,"");render(w,"detail",c);return}}
  http.NotFound(w,r)
  })
  mux.HandleFunc("GET /read/{slug}/{chapter}",readerHandler)
@@ -48,6 +48,8 @@ func handler() http.Handler {
  mux.HandleFunc("POST /account",accountPost)
  mux.HandleFunc("GET /api/library",libraryAPI)
  mux.HandleFunc("POST /api/library",libraryAPI)
+ mux.HandleFunc("GET /ranking",rankingHandler)
+ mux.HandleFunc("GET /admin/analytics",analyticsHandler)
  mux.HandleFunc("GET /health",func(w http.ResponseWriter,r *http.Request){w.Write([]byte("ok"))})
  mux.HandleFunc("GET /style.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/style.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
@@ -64,7 +66,7 @@ func handler() http.Handler {
 func main(){
  var err error
  catalog,err=openCatalogStorage();if err!=nil{log.Fatal(err)}
- if catalogDB!=nil{defer catalogDB.Close();if err:=initAccounts();err!=nil{log.Fatal(err)}}
+ if catalogDB!=nil{defer catalogDB.Close();if err:=initAccounts();err!=nil{log.Fatal(err)};if err:=initAnalytics();err!=nil{log.Fatal(err)}}
  if err:=startManifestSync();err!=nil{log.Fatal(err)}
  if err:=validatePublicURL();err!=nil{log.Fatal(err)}
  addr:=os.Getenv("ADDR");if addr==""{addr="127.0.0.1:8080"}

@@ -20,7 +20,7 @@ func readerHandler(w http.ResponseWriter,r *http.Request) {
    v:=ReaderView{Comic:c,Chapter:ch.Number,Panels:ch.Panels,Images:ch.Images}
    if i>0{v.Previous=c.Chapters[i-1].Number}
    if i+1<len(c.Chapters){v.Next=c.Chapters[i+1].Number}
-   render(w,"reader",v);return
+   recordView(r,c.Slug,ch.Number);render(w,"reader",v);return
   }
  }
  http.NotFound(w,r)

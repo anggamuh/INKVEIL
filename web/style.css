@@ -14,3 +14,5 @@ header nav{display:flex;gap:16px;color:#aaa6b0}.secondary{background:#222229;col
 .pagination{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin:30px 0}.pagination span{color:#aaa6b0}:focus-visible{outline:2px solid #ec777a;outline-offset:3px}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
 .account{max-width:900px}.account>form{max-width:180px;margin-top:20px}
+
+.ranking-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}.ranking-list{padding-left:32px}.ranking-list li{padding:12px;border-bottom:1px solid #292930}.ranking-list li::marker{color:#ec777a;font-weight:800}.ranking-list a{display:flex;align-items:center;gap:16px;justify-content:space-between}.ranking-list img{width:48px;height:64px;object-fit:cover;border-radius:6px}.ranking-list a>span:first-of-type{flex:1}.ranking-list small{display:block}.rank-count{white-space:nowrap;color:#ec777a}
