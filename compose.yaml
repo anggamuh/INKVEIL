@@ -7,6 +7,10 @@ services:
       - inkveil-data:/app/data
     environment:
       INKVEIL_ADMIN_PASSWORD: ${INKVEIL_ADMIN_PASSWORD:-}
+      INKVEIL_SYNC_URL: ${INKVEIL_SYNC_URL:-}
+      INKVEIL_SYNC_SOURCE: ${INKVEIL_SYNC_SOURCE:-}
+      INKVEIL_SYNC_INTERVAL: ${INKVEIL_SYNC_INTERVAL:-30m}
+      INKVEIL_SYNC_PERMISSION: ${INKVEIL_SYNC_PERMISSION:-}
     restart: unless-stopped
 volumes:
   inkveil-data:

@@ -15,6 +15,7 @@ import (
 
 func adminAuth(w http.ResponseWriter,r *http.Request) bool {
  w.Header().Set("Cache-Control","no-store")
+ w.Header().Set("X-Robots-Tag","noindex, nofollow")
  password:=os.Getenv("INKVEIL_ADMIN_PASSWORD")
  if len(password)<12 {http.NotFound(w,r);return false}
  user,pass,ok:=r.BasicAuth()
