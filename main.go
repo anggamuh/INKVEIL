@@ -71,6 +71,7 @@ func main(){
  var err error
  catalog,err=openCatalogStorage();if err!=nil{log.Fatal(err)}
  if catalogDB!=nil{defer catalogDB.Close();if err:=initAccounts();err!=nil{log.Fatal(err)};if err:=initAnalytics();err!=nil{log.Fatal(err)}}
+ if len(os.Args)>1{if os.Args[1]!="import-package"||len(os.Args)!=3{log.Fatal("usage: go run . import-package <zip>")};if err:=importPackage(os.Args[2]);err!=nil{log.Fatal(err)};return}
  if err:=startManifestSync();err!=nil{log.Fatal(err)}
  if err:=validatePublicURL();err!=nil{log.Fatal(err)}
  addr:=os.Getenv("ADDR");if addr==""{addr="127.0.0.1:8080"}
