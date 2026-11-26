@@ -24,16 +24,18 @@ func render(w http.ResponseWriter, name string, data any) {
 }
 func handler() http.Handler {
  mux:=http.NewServeMux()
- mux.HandleFunc("GET /{$}",func(w http.ResponseWriter,r *http.Request){
+ homeHandler:=func(w http.ResponseWriter,r *http.Request){
  q:=strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
  kind:=r.URL.Query().Get("type")
  status:=r.URL.Query().Get("status")
  items:=[]Comic{}
  for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre+" "+c.Author+" "+c.Artist),q) && (kind=="" || strings.EqualFold(kind,c.Type)) && (status=="" || strings.EqualFold(status,c.Status)){items=append(items,c)} }
- render(w,"home",buildHome(r,items,catalog[0]))
- })
+ v:=buildHome(r,items,catalog[0]);if r.URL.Path=="/series"{render(w,"series",v)}else{render(w,"home",v)}
+ }
+ mux.HandleFunc("GET /{$}",homeHandler)
+ mux.HandleFunc("GET /series",homeHandler)
  mux.HandleFunc("GET /comic/{slug}",func(w http.ResponseWriter,r *http.Request){
- for _,c:=range catalog {if c.Slug==r.PathValue("slug"){recordView(r,c.Slug,"");render(w,"detail",c);return}}
+ for _,c:=range catalog {if c.Slug==r.PathValue("slug"){recordView(r,c.Slug,"");render(w,"detail",buildDetail(r,c));return}}
  http.NotFound(w,r)
  })
  mux.HandleFunc("GET /read/{slug}/{chapter}",readerHandler)
@@ -51,6 +53,7 @@ func handler() http.Handler {
  mux.HandleFunc("GET /ranking",rankingHandler)
  mux.HandleFunc("GET /admin/analytics",analyticsHandler)
  mux.HandleFunc("GET /health",func(w http.ResponseWriter,r *http.Request){w.Write([]byte("ok"))})
+ mux.HandleFunc("GET /ui.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/ui.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /premium.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/premium.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /style.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/style.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
