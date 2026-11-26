@@ -20,6 +20,11 @@ type sourceConfig struct {
 func loadSourceConfig(path string)([]sourceConfig,error){
  file,err:=os.Open(path);if err!=nil{return nil,err};defer file.Close()
  b,err:=io.ReadAll(io.LimitReader(file,(256<<10)+1));if err!=nil{return nil,err};if len(b)>256<<10{return nil,fmt.Errorf("source configuration too large")}
+ return parseSourceConfig(b)
+}
+func parseSourceConfig(b []byte)([]sourceConfig,error){
+ if len(b)>256<<10{return nil,fmt.Errorf("source configuration too large")}
+ var err error
  var sources []sourceConfig
  dec:=json.NewDecoder(strings.NewReader(string(b)));dec.DisallowUnknownFields()
  if err=dec.Decode(&sources);err!=nil{return nil,err}

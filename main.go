@@ -40,6 +40,8 @@ func handler() http.Handler {
  })
  mux.HandleFunc("GET /read/{slug}/{chapter}",readerHandler)
  mux.HandleFunc("GET /pages/{name}",pageHandler)
+ mux.HandleFunc("GET /admin/sources",adminSourcesGet)
+ mux.HandleFunc("POST /admin/sources",adminSourcesPost)
  mux.HandleFunc("GET /admin",adminGet)
  mux.HandleFunc("POST /admin",adminPost)
  mux.HandleFunc("GET /library",func(w http.ResponseWriter,r *http.Request){render(w,"library",catalog)})
