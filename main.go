@@ -40,6 +40,8 @@ func handler() http.Handler {
  mux.HandleFunc("GET /pages/{name}",pageHandler)
  mux.HandleFunc("GET /admin",adminGet)
  mux.HandleFunc("POST /admin",adminPost)
+ mux.HandleFunc("GET /library",func(w http.ResponseWriter,r *http.Request){render(w,"library",catalog)})
+ mux.HandleFunc("GET /reader.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/reader.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /health",func(w http.ResponseWriter,r *http.Request){w.Write([]byte("ok"))})
  mux.HandleFunc("GET /style.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/style.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
