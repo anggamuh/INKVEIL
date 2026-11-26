@@ -68,6 +68,7 @@ func handler() http.Handler {
  })
 }
 func main(){
+ if len(os.Args)>1&&os.Args[1]=="check-sources"{if len(os.Args)!=3{log.Fatal("usage: go run . check-sources sources.json")};if err:=checkSourceConfig(os.Args[2]);err!=nil{log.Fatal(err)};return}
  if len(os.Args)>1&&os.Args[1]=="preview-source"{if len(os.Args)<5||len(os.Args)>54{log.Fatal("usage: go run . preview-source manga.json chapters1.json [chapters2.json ...] chapter.json")};if err:=previewSource(os.Args[2:]);err!=nil{log.Fatal(err)};return}
  var err error
  catalog,err=openCatalogStorage();if err!=nil{log.Fatal(err)}
