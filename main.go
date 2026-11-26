@@ -32,6 +32,9 @@ func handler() http.Handler {
  for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre+" "+c.Author+" "+c.Artist),q) && (kind=="" || strings.EqualFold(kind,c.Type)) && (status=="" || strings.EqualFold(status,c.Status)){items=append(items,c)} }
  v:=buildHome(r,items,catalog[0]);if r.URL.Path=="/series"{render(w,"series",v)}else{render(w,"home",v)}
  }
+ mux.HandleFunc("GET /live",liveListHandler)
+ mux.HandleFunc("GET /live/{id}",liveDetailHandler)
+ mux.HandleFunc("GET /live/{id}/{chapter}",liveReaderHandler)
  mux.HandleFunc("GET /{$}",homeHandler)
  mux.HandleFunc("GET /series",homeHandler)
  mux.HandleFunc("GET /comic/{slug}",func(w http.ResponseWriter,r *http.Request){
@@ -69,6 +72,7 @@ func handler() http.Handler {
  w.Header().Set("Permissions-Policy","camera=(), microphone=(), geolocation=()")
  w.Header().Set("X-Frame-Options","DENY")
  w.Header().Set("Content-Security-Policy","default-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+ if r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/"){mux.ServeHTTP(w,r);return}
  if strings.HasPrefix(r.URL.Path,"/admin/") && r.URL.Path!="/admin/analytics"{mux.ServeHTTP(w,r);return}
  if r.Method=="POST" && r.URL.Path=="/admin" {mux.ServeHTTP(w,r);return}
  catalogMu.RLock();defer catalogMu.RUnlock()
