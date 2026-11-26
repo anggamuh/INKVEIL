@@ -33,7 +33,7 @@ func liveFetch(ctx context.Context,base *url.URL,path string,q url.Values,out an
  liveMu.Lock();entry,ok:=liveCache[key];liveMu.Unlock()
  if ok&&time.Now().Before(entry.Expires){return json.Unmarshal(entry.Data,out)}
  select{case liveSlots<-struct{}{}:defer func(){<-liveSlots}();case <-ctx.Done():return ctx.Err();default:return fmt.Errorf("live source busy")}
- req,e:=http.NewRequestWithContext(ctx,"GET",key,nil);if e!=nil{return e};req.Header.Set("Accept","application/json")
+ req,e:=http.NewRequestWithContext(ctx,"GET",key,nil);if e!=nil{return e};req.Header.Set("Accept","application/json");req.Header.Set("User-Agent","INKVEIL/1.0 (local personal reader)")
  resp,e:=liveClient.Do(req);if e!=nil{return fmt.Errorf("source unavailable")};defer resp.Body.Close()
  if resp.StatusCode!=200{return fmt.Errorf("source HTTP %d",resp.StatusCode)}
  b,e:=io.ReadAll(io.LimitReader(resp.Body,(2<<20)+1));if e!=nil||len(b)>2<<20{return fmt.Errorf("invalid source response size")}
