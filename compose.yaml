@@ -6,6 +6,8 @@ services:
     volumes:
       - inkveil-data:/app/data
     environment:
+      INKVEIL_MYSQL_DSN: ${INKVEIL_MYSQL_DSN:-}
+      INKVEIL_PUBLIC_URL: ${INKVEIL_PUBLIC_URL:-}
       INKVEIL_ADMIN_PASSWORD: ${INKVEIL_ADMIN_PASSWORD:-}
       INKVEIL_SYNC_URL: ${INKVEIL_SYNC_URL:-}
       INKVEIL_SYNC_SOURCE: ${INKVEIL_SYNC_SOURCE:-}

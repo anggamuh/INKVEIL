@@ -1,7 +1,8 @@
 FROM golang:1.25-alpine AS build
 WORKDIR /src
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -o /inkveil .
+RUN go mod download
+RUN CGO_ENABLED=0 go build -mod=mod -trimpath -o /inkveil .
 FROM alpine:3.22
 RUN addgroup -S inkveil && adduser -S -G inkveil inkveil && mkdir -p /app/data && chown -R inkveil:inkveil /app
 WORKDIR /app

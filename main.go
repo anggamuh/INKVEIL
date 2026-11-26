@@ -59,7 +59,8 @@ func handler() http.Handler {
 }
 func main(){
  var err error
- catalog,err=loadCatalog(os.Getenv("INKVEIL_CATALOG"));if err!=nil{log.Fatal(err)}
+ catalog,err=openCatalogStorage();if err!=nil{log.Fatal(err)}
+ if catalogDB!=nil{defer catalogDB.Close()}
  if err:=startManifestSync();err!=nil{log.Fatal(err)}
  if err:=validatePublicURL();err!=nil{log.Fatal(err)}
  addr:=os.Getenv("ADDR");if addr==""{addr="127.0.0.1:8080"}
