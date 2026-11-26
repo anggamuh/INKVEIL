@@ -15,6 +15,9 @@ const pageSize=24
 
 type HomeView struct {
  Comics []Comic
+ Releases []Comic
+ Popular rankingView
+ PopularError bool
  Query,Type,Status,Sort string
  Featured Comic
  Total,Page,Pages int
@@ -34,7 +37,11 @@ func buildHome(r *http.Request,items []Comic,featured Comic) HomeView {
  v.Page,_=strconv.Atoi(q.Get("page"));if v.Page<1{v.Page=1};if v.Page>v.Pages{v.Page=v.Pages}
  start:=(v.Page-1)*pageSize;end:=start+pageSize;if end>len(items){end=len(items)}
  v.Comics=items[start:end]
- link:=func(page int)string{p:=url.Values{};for k,s:=range map[string]string{"q":v.Query,"type":v.Type,"status":v.Status,"sort":v.Sort}{if s!=""{p.Set(k,s)}};p.Set("page",strconv.Itoa(page));return "/?"+p.Encode()+"#catalog"}
+ for _,c:=range v.Comics{if len(c.Chapters)==0{continue};recent:=c;recent.Chapters=append([]Chapter(nil),c.Chapters...);if len(recent.Chapters)>2{recent.Chapters=recent.Chapters[len(recent.Chapters)-2:]};for i,j:=0,len(recent.Chapters)-1;i<j;i,j=i+1,j-1{recent.Chapters[i],recent.Chapters[j]=recent.Chapters[j],recent.Chapters[i]};v.Releases=append(v.Releases,recent)}
+ var err error
+ v.Popular,err=queryRanking(r,q.Get("period"));v.PopularError=err!=nil
+ if len(v.Popular.Rows)>8{v.Popular.Rows=v.Popular.Rows[:8]}
+ link:=func(page int)string{p:=url.Values{};for k,s:=range map[string]string{"q":v.Query,"type":v.Type,"status":v.Status,"sort":v.Sort,"period":v.Popular.Period}{if s!=""{p.Set(k,s)}};p.Set("page",strconv.Itoa(page));return "/?"+p.Encode()+"#catalog"}
  if v.Page>1{v.PrevURL=link(v.Page-1)};if v.Page<v.Pages{v.NextURL=link(v.Page+1)}
  return v
 }
