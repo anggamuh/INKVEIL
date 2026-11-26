@@ -17,6 +17,7 @@ var dexCoverMu sync.Mutex
 var dexCoverCache=map[string]dexCoverEntry{}
 var dexCoverBytes int
 var dexCoverSlots=make(chan struct{},4)
+var dexCoverQueue=make(chan struct{},32)
 var dexCoverClient=&http.Client{Timeout:10*time.Second,CheckRedirect:func(*http.Request,[]*http.Request)error{return http.ErrUseLastResponse}}
 
 func dexCoverPath(id,file string)(string,bool){
@@ -26,7 +27,12 @@ func dexCoverPath(id,file string)(string,bool){
 func dexCoverLoad(ctx context.Context,client *http.Client,path string)(dexCoverEntry,error){
  dexCoverMu.Lock();v,ok:=dexCoverCache[path];dexCoverMu.Unlock()
  if ok&&time.Now().Before(v.expires){return v,nil}
- select{case dexCoverSlots<-struct{}{}:defer func(){<-dexCoverSlots}();case <-ctx.Done():return dexCoverEntry{},ctx.Err();default:return dexCoverEntry{},fmt.Errorf("cover request budget busy")}
+ select{case dexCoverQueue<-struct{}{}:defer func(){<-dexCoverQueue}();default:return dexCoverEntry{},fmt.Errorf("cover queue full")}
+ wait,cancel:=context.WithTimeout(ctx,15*time.Second);defer cancel()
+ select{case dexCoverSlots<-struct{}{}:defer func(){<-dexCoverSlots}();case <-wait.Done():return dexCoverEntry{},wait.Err()}
+ // A request ahead of us may already have populated the cache.
+ dexCoverMu.Lock();v,ok=dexCoverCache[path];dexCoverMu.Unlock()
+ if ok&&time.Now().Before(v.expires){return v,nil}
  req,e:=http.NewRequestWithContext(ctx,"GET","https://uploads.mangadex.org"+path,nil);if e!=nil{return v,e}
  req.Header.Set("User-Agent","INKVEIL/1.0 (local personal reader)")
  req.Header.Set("Accept","image/jpeg,image/png,image/webp")
