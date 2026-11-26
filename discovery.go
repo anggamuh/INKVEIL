@@ -32,7 +32,7 @@ func buildHome(r *http.Request,items []Comic,featured Comic) HomeView {
  switch v.Sort {
  case "title":sort.SliceStable(items,func(i,j int)bool{return strings.ToLower(items[i].Title)<strings.ToLower(items[j].Title)})
  case "chapters":sort.SliceStable(items,func(i,j int)bool{return len(items[i].Chapters)>len(items[j].Chapters)})
- default:v.Sort=""
+ default:v.Sort="";sort.SliceStable(items,func(i,j int)bool{return latestPublication(items[i]).After(latestPublication(items[j]))})
  }
  v.Pages=(len(items)+pageSize-1)/pageSize
  if v.Pages==0{v.Pages=1}
@@ -41,7 +41,7 @@ func buildHome(r *http.Request,items []Comic,featured Comic) HomeView {
  v.Comics=items[start:end]
  for _,c:=range items{if len(v.Showcase)>=9{break};v.Showcase=append(v.Showcase,c)}
  v.Recommended=q.Get("period")==""||q.Get("period")=="recommended"
- for _,c:=range v.Comics{if len(c.Chapters)==0{continue};recent:=c;recent.Chapters=append([]Chapter(nil),c.Chapters...);if len(recent.Chapters)>2{recent.Chapters=recent.Chapters[len(recent.Chapters)-2:]};for i,j:=0,len(recent.Chapters)-1;i<j;i,j=i+1,j-1{recent.Chapters[i],recent.Chapters[j]=recent.Chapters[j],recent.Chapters[i]};v.Releases=append(v.Releases,recent)}
+ for _,c:=range v.Comics{if len(c.Chapters)==0{continue};recent:=c;recent.Chapters=chaptersByPublication(c.Chapters);if len(recent.Chapters)>2{recent.Chapters=recent.Chapters[:2]};v.Releases=append(v.Releases,recent)}
  var err error
  v.Popular,err=queryRanking(r,q.Get("period"));v.PopularError=err!=nil
  allowed:=map[string]bool{};for _,c:=range items{allowed[c.Slug]=true};filtered:=v.Popular.Rows[:0];for _,row:=range v.Popular.Rows{if allowed[row.Slug]{filtered=append(filtered,row)}};v.Popular.Rows=filtered

@@ -11,6 +11,7 @@ import (
  "path/filepath"
  "strings"
  "fmt"
+ "time"
 )
 
 func adminAuth(w http.ResponseWriter,r *http.Request) bool {
@@ -87,7 +88,8 @@ func adminPost(w http.ResponseWriter,r *http.Request){
   idx:=-1;for i,c:=range items{if c.Slug==slug{idx=i;break}}
   if idx<0||!identifier.MatchString(num){http.Error(w,"Invalid comic or chapter",400);return}
   for _,ch:=range items[idx].Chapters{if ch.Number==num{http.Error(w,"Chapter already exists",409);return}}
-  ch:=Chapter{Number:num}
+  published:=time.Now().UTC()
+  ch:=Chapter{Number:num,PublishedAt:&published}
   for _,line:=range strings.Split(r.FormValue("panels"),"\n"){if s:=strings.TrimSpace(line);s!=""{ch.Panels=append(ch.Panels,s)}}
   dir:=os.Getenv("INKVEIL_PAGES");if dir==""{dir=filepath.Join("data","pages")}
   created:=[]string{};saved:=false
