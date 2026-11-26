@@ -8,3 +8,5 @@ func TestDiscoveryMetadata(t *testing.T){
  }
  catalog[1].Cover="../secret.png";if validateCatalog(catalog)==nil{t.Fatal("unsafe cover accepted")}
 }
+
+func TestFilteredShowcase(t *testing.T){items:=demoCatalog()[1:2];v:=buildHome(httptest.NewRequest("GET","/?type=Manga",nil),items,items[0]);if len(v.Showcase)!=1||v.Showcase[0].Slug!="ash"{t.Fatal("showcase bypassed filter")}}
