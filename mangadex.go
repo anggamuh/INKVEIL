@@ -24,7 +24,13 @@ type dexEntity struct {
  Year *int
  ContentRating string
  }
- Relationships []dexEntity
+ Relationships []dexRelationship
+}
+// Relationship attributes have a different schema from manga/chapter attributes.
+// Decode only the fields used by the UI; unrelated descriptions may be strings.
+type dexRelationship struct {
+ ID,Type string
+ Attributes struct { Name,FileName string }
 }
 type dexListResponse struct{Result string;Data []dexEntity;Total,Offset,Limit int}
 type dexDetailResponse struct{Result string;Data dexEntity}
