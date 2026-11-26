@@ -29,7 +29,7 @@ func loadSourceConfig(path string)([]sourceConfig,error){
  for _,s:=range sources{
   if !identifier.MatchString(s.ID)||seen[s.ID]||strings.TrimSpace(s.Name)==""||len(s.Name)>160{return nil,fmt.Errorf("invalid or duplicate source identity")}
   seen[s.ID]=true
-  if s.Adapter!="offline-json"&&s.Adapter!="local-package"{return nil,fmt.Errorf("unsupported adapter for %s",s.ID)}
+  if !hasSourceAdapter(s.Adapter){return nil,fmt.Errorf("unsupported adapter for %s",s.ID)}
   if s.BaseURL!=""{u,e:=url.Parse(s.BaseURL);if e!=nil||u.Scheme!="https"||u.Hostname()==""||u.User!=nil||u.RawQuery!=""||u.Fragment!=""||u.Opaque!=""{return nil,fmt.Errorf("invalid HTTPS base URL for %s",s.ID)}}
   if s.Enabled&&strings.TrimSpace(s.Permission)==""{return nil,fmt.Errorf("enabled source %s needs a permission reference",s.ID)}
  }

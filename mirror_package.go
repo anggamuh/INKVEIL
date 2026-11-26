@@ -19,7 +19,8 @@ type mirrorPackage struct {
  Comics []Comic
 }
 const packageLimit=256<<20
-func importPackage(path string)error{
+func importPackage(path string)error{return importPackageForSource(path,nil)}
+func importPackageForSource(path string,source *sourceConfig)error{
  if os.Getenv("INKVEIL_IMPORT_PERMISSION")!="yes"{return fmt.Errorf("set INKVEIL_IMPORT_PERMISSION=yes only for authorized content")}
  z,err:=zip.OpenReader(path);if err!=nil{return err};defer z.Close()
  entries:=map[string]*zip.File{}
@@ -36,6 +37,7 @@ func importPackage(path string)error{
  raw,err:=read("manifest.json");if err!=nil{return err}
  var p mirrorPackage;if err=json.Unmarshal(raw,&p);err!=nil{return err}
  if strings.TrimSpace(p.Permission)==""{return fmt.Errorf("license or permission reference required")}
+ if source!=nil&&(p.Source!=source.ID||strings.TrimSpace(p.Permission)!=strings.TrimSpace(source.Permission)){return fmt.Errorf("package source or permission does not match configuration")}
  if len(p.Comics)==0||len(p.Comics)>20{return fmt.Errorf("package must contain 1–20 comics")}
  dir:=os.Getenv("INKVEIL_PAGES");if dir==""{dir=filepath.Join("data","pages")}
  if err=os.MkdirAll(dir,0755);err!=nil{return err}
