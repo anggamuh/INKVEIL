@@ -33,6 +33,7 @@ func configuredHandler(provider string) http.Handler {
  for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre+" "+c.Author+" "+c.Artist),q) && (kind=="" || strings.EqualFold(kind,c.Type)) && (status=="" || strings.EqualFold(status,c.Status)){items=append(items,c)} }
  v:=buildHome(r,items,catalog[0]);if r.URL.Path=="/series"{render(w,"series",v)}else{render(w,"home",v)}
  }
+ mux.HandleFunc("GET /dex-cover/{id}/{file}",dexCoverHandler)
  mux.HandleFunc("GET /dex.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/dex.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /dex-reader.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/dex-reader.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /live",liveListHandler)
@@ -76,7 +77,7 @@ func configuredHandler(provider string) http.Handler {
  w.Header().Set("X-Frame-Options","DENY")
  w.Header().Set("Content-Security-Policy","default-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  if r.Method=="GET"&&r.URL.Path=="/"&&provider=="mangadex"{dexList(w,r);return}
- if r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/"){mux.ServeHTTP(w,r);return}
+ if r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/")||strings.HasPrefix(r.URL.Path,"/dex-cover/"){mux.ServeHTTP(w,r);return}
  if strings.HasPrefix(r.URL.Path,"/admin/") && r.URL.Path!="/admin/analytics"{mux.ServeHTTP(w,r);return}
  if r.Method=="POST" && r.URL.Path=="/admin" {mux.ServeHTTP(w,r);return}
  catalogMu.RLock();defer catalogMu.RUnlock()

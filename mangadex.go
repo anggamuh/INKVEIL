@@ -53,7 +53,7 @@ func dexText(m map[string]string)string{
 }
 func dexTitle(d dexEntity)liveTitle{
  t:=liveTitle{ID:d.ID,Title:dexText(d.Attributes.Title),Description:dexText(d.Attributes.Description),Type:"Manga"}
- t.Status=d.Attributes.Status; switch d.Attributes.OriginalLanguage{case "ko":t.Type="Manhwa";case "zh","zh-hk":t.Type="Manhua"};for _,rel:=range d.Relationships{if rel.Type=="cover_art"&&sourceUUID.MatchString(d.ID)&&dexFile.MatchString(rel.Attributes.FileName){t.CoverURL="https://uploads.mangadex.org/covers/"+d.ID+"/"+rel.Attributes.FileName+".256.jpg"};if rel.Type=="author"&&rel.Attributes.Name!=""{t.Author=rel.Attributes.Name}};var tags []string;for _,tag:=range d.Attributes.Tags{if n:=dexText(tag.Attributes.Name);n!=""{tags=append(tags,n)}};t.Genre=strings.Join(tags,", ");return t
+ t.Status=d.Attributes.Status; switch d.Attributes.OriginalLanguage{case "ko":t.Type="Manhwa";case "zh","zh-hk":t.Type="Manhua"};for _,rel:=range d.Relationships{if rel.Type=="cover_art"&&sourceUUID.MatchString(d.ID)&&dexFile.MatchString(rel.Attributes.FileName){t.CoverURL="/dex-cover/"+d.ID+"/"+rel.Attributes.FileName+".256.jpg"};if rel.Type=="author"&&rel.Attributes.Name!=""{t.Author=rel.Attributes.Name}};var tags []string;for _,tag:=range d.Attributes.Tags{if n:=dexText(tag.Attributes.Name);n!=""{tags=append(tags,n)}};t.Genre=strings.Join(tags,", ");return t
 }
 func dexOffset(r *http.Request)(int,error){s:=r.URL.Query().Get("offset");if s==""{return 0,nil};n,e:=strconv.Atoi(s);if e!=nil||n<0||n>9900{return 0,fmt.Errorf("invalid offset")};return n,nil}
 func dexLanguage(r *http.Request)string{if r.URL.Query().Get("lang")=="en"{return "en"};return "id"}
@@ -82,4 +82,4 @@ func dexDetail(w http.ResponseWriter,r *http.Request){
  dexPage(&v,offset,100,feed.Total);render(w,"dex_detail",v)
 }
 
-func dexCoverPolicy(w http.ResponseWriter){w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' https://uploads.mangadex.org; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")}
+func dexCoverPolicy(w http.ResponseWriter){w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")}
