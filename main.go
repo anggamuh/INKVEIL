@@ -40,6 +40,8 @@ func handler() http.Handler {
  })
  mux.HandleFunc("GET /read/{slug}/{chapter}",readerHandler)
  mux.HandleFunc("GET /pages/{name}",pageHandler)
+ mux.HandleFunc("GET /admin/team",teamGet)
+ mux.HandleFunc("POST /admin/team",teamPost)
  mux.HandleFunc("GET /admin/imports",adminImportStatus)
  mux.HandleFunc("GET /admin/sources",adminSourcesGet)
  mux.HandleFunc("POST /admin/sources",adminSourcesPost)
@@ -61,10 +63,13 @@ func handler() http.Handler {
  mux.HandleFunc("GET /style.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/style.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
  w.Header().Set("X-Content-Type-Options","nosniff")
+ if strings.HasPrefix(r.URL.Path,"/admin"){w.Header().Set("Cache-Control","no-store")}
+ if r.TLS!=nil{w.Header().Set("Strict-Transport-Security","max-age=31536000")}
  w.Header().Set("Referrer-Policy","strict-origin-when-cross-origin")
  w.Header().Set("Permissions-Policy","camera=(), microphone=(), geolocation=()")
  w.Header().Set("X-Frame-Options","DENY")
  w.Header().Set("Content-Security-Policy","default-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+ if strings.HasPrefix(r.URL.Path,"/admin/") && r.URL.Path!="/admin/analytics"{mux.ServeHTTP(w,r);return}
  if r.Method=="POST" && r.URL.Path=="/admin" {mux.ServeHTTP(w,r);return}
  catalogMu.RLock();defer catalogMu.RUnlock()
  mux.ServeHTTP(w,r)
@@ -82,6 +87,6 @@ func main(){
  if err:=validatePublicURL();err!=nil{log.Fatal(err)}
  if err:=startPackageInbox();err!=nil{log.Fatal(err)}
  addr:=os.Getenv("ADDR");if addr==""{addr="127.0.0.1:8080"}
- s:=&http.Server{Addr:addr,Handler:handler(),ReadHeaderTimeout:5*time.Second,ReadTimeout:15*time.Second,WriteTimeout:30*time.Second,IdleTimeout:60*time.Second}
+ s:=&http.Server{Addr:addr,Handler:handler(),ReadHeaderTimeout:5*time.Second,ReadTimeout:15*time.Second,WriteTimeout:30*time.Second,IdleTimeout:60*time.Second,MaxHeaderBytes:32<<10}
  log.Printf("INKVEIL listening on %s",addr);log.Fatal(s.ListenAndServe())
 }

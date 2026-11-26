@@ -31,7 +31,7 @@ func adminGet(w http.ResponseWriter,r *http.Request){
  token:=make([]byte,32)
  if _,err:=rand.Read(token);err!=nil{http.Error(w,"Token error",500);return}
  csrf:=hex.EncodeToString(token)
- http.SetCookie(w,&http.Cookie{Name:"inkveil_csrf",Value:csrf,Path:"/admin",HttpOnly:true,SameSite:http.SameSiteStrictMode,Secure:r.TLS!=nil})
+ http.SetCookie(w,&http.Cookie{Name:"inkveil_csrf",Value:csrf,Path:"/admin",HttpOnly:true,SameSite:http.SameSiteStrictMode,Secure:r.TLS!=nil||os.Getenv("INKVEIL_PUBLIC_URL")!=""})
  raw,err:=json.MarshalIndent(catalog,"","  ");if err!=nil{http.Error(w,"Catalog error",500);return}
  count:=0;for _,c:=range catalog{count+=len(c.Chapters)}
  render(w,"admin",struct{Comics []Comic; Chapters int; JSON,CSRF string; Sources []SourceSummary; Notice string}{catalog,count,string(raw),csrf,sourceSummaries(catalog),r.URL.Query().Get("notice")})
@@ -51,6 +51,7 @@ func persistCatalog(items []Comic) error {
 }
 func adminPost(w http.ResponseWriter,r *http.Request){
  if !adminAuth(w,r){return}
+ if r.Header.Get("Sec-Fetch-Site")=="cross-site"{http.Error(w,"Cross-site request",403);return}
  r.Body=http.MaxBytesReader(w,r.Body,24<<20)
  if err:=r.ParseMultipartForm(2<<20);err!=nil{http.Error(w,"Invalid form or upload too large",400);return}
  defer r.MultipartForm.RemoveAll()
