@@ -73,6 +73,8 @@ func adminPost(w http.ResponseWriter,r *http.Request){
   http.Redirect(w,r,"/admin?notice="+fmt.Sprintf("imported-%d-comics-%d-chapters-skipped-%d",report.Comics,report.Chapters,report.Skipped),303);return
  case "comic":
   c:=Comic{Slug:strings.TrimSpace(r.FormValue("slug")),Title:strings.TrimSpace(r.FormValue("title")),Genre:r.FormValue("genre"),Type:r.FormValue("type"),Description:r.FormValue("description"),Source:strings.TrimSpace(r.FormValue("source"))}
+  c.Author=strings.TrimSpace(r.FormValue("author"));c.Artist=strings.TrimSpace(r.FormValue("artist"));c.Status=r.FormValue("status");c.Cover=strings.TrimSpace(r.FormValue("cover"))
+  if c.Cover!=""{if !imageName.MatchString(c.Cover){http.Error(w,"Invalid cover filename",400);return};dir:=os.Getenv("INKVEIL_PAGES");if dir==""{dir=filepath.Join("data","pages")};info,e:=os.Lstat(filepath.Join(dir,c.Cover));if e!=nil||!info.Mode().IsRegular(){http.Error(w,"Cover file not found",400);return}}
   found:=false
   for i,old:=range items{if old.Slug==c.Slug{c.Chapters=old.Chapters;c.Color=old.Color;items[i]=c;found=true;break}}
   if !found{items=append(items,c)}

@@ -23,6 +23,7 @@ func demoCatalog() []Comic {
  }
  for i:=range items {
   items[i].Source="original-demo"
+  items[i].Status="Ongoing"
   items[i].Chapters=[]Chapter{
    {Number:"1",Panels:[]string{"The world was quiet.","A distant light appeared.","And the journey began."}},
    {Number:"2",Panels:[]string{"Beyond the horizon.","Something waited in the shadows.","To be continued."}},
@@ -40,6 +41,8 @@ func validateCatalog(items []Comic) error {
  for _,c:=range items{
   if !identifier.MatchString(c.Slug)||seen[c.Slug]||strings.TrimSpace(c.Title)==""||strings.TrimSpace(c.Source)=="" {return fmt.Errorf("invalid or duplicate comic: %q",c.Slug)}
   seen[c.Slug]=true
+  if c.Cover!=""&&!imageName.MatchString(c.Cover){return fmt.Errorf("invalid cover for %s",c.Slug)}
+  switch c.Status{case "", "Ongoing","Completed","Hiatus":default:return fmt.Errorf("invalid status for %s",c.Slug)}
   chapters:=map[string]bool{}
   for _,ch:=range c.Chapters{
    if !identifier.MatchString(ch.Number)||chapters[ch.Number]||(len(ch.Panels)==0&&len(ch.Images)==0){return fmt.Errorf("invalid chapter %q for %s",ch.Number,c.Slug)}

@@ -1,0 +1,3 @@
+# Catalog discovery
+
+New optional JSON fields: Author, Artist, Status (Ongoing, Completed, Hiatus, or empty), Cover (local image filename). Existing catalogs need no migration. Copy an authorized cover image into data/pages and enter its filename in the admin metadata form. Existing metadata is replaced by that form, so enter all values when editing. Status filter is combined with type and search by selecting a type button. Covers use the existing local image route; no remote downloads or ranking analytics are implemented. Missing cover files may result in a broken image if entered using the advanced JSON editor or manifest.
