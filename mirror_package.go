@@ -46,6 +46,7 @@ func importPackageForSource(path string,source *sourceConfig)error{
  copyImage:=func(name string)(string,error){
   if !imageName.MatchString(name){return "",fmt.Errorf("invalid image name")}
   b,e:=read("pages/"+name);if e!=nil{return "",e}
+  if os.Getenv("INKVEIL_OPTIMIZE_IMAGES")=="yes"{b,e=optimizePackageImage(b);if e!=nil{return "",e}}
   ext:=map[string]string{"image/png":".png","image/jpeg":".jpg","image/gif":".gif","image/webp":".webp"}[http.DetectContentType(b)];if ext==""{return "",fmt.Errorf("invalid image content")}
   sum:=sha256.Sum256(b);target:=fmt.Sprintf("%x%s",sum,ext);dest:=filepath.Join(dir,target)
   out,e:=os.OpenFile(dest,os.O_WRONLY|os.O_CREATE|os.O_EXCL,0644)

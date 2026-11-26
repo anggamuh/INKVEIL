@@ -40,6 +40,7 @@ func handler() http.Handler {
  })
  mux.HandleFunc("GET /read/{slug}/{chapter}",readerHandler)
  mux.HandleFunc("GET /pages/{name}",pageHandler)
+ mux.HandleFunc("GET /admin/imports",adminImportStatus)
  mux.HandleFunc("GET /admin/sources",adminSourcesGet)
  mux.HandleFunc("POST /admin/sources",adminSourcesPost)
  mux.HandleFunc("GET /admin",adminGet)
@@ -79,6 +80,7 @@ func main(){
  if len(os.Args)>1{if os.Args[1]!="import-package"||len(os.Args)!=3{log.Fatal("usage: go run . import-package <zip>")};if err:=importPackage(os.Args[2]);err!=nil{log.Fatal(err)};return}
  if err:=startManifestSync();err!=nil{log.Fatal(err)}
  if err:=validatePublicURL();err!=nil{log.Fatal(err)}
+ if err:=startPackageInbox();err!=nil{log.Fatal(err)}
  addr:=os.Getenv("ADDR");if addr==""{addr="127.0.0.1:8080"}
  s:=&http.Server{Addr:addr,Handler:handler(),ReadHeaderTimeout:5*time.Second,ReadTimeout:15*time.Second,WriteTimeout:30*time.Second,IdleTimeout:60*time.Second}
  log.Printf("INKVEIL listening on %s",addr);log.Fatal(s.ListenAndServe())
