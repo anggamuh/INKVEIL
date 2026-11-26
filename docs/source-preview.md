@@ -1,0 +1,3 @@
+# Offline source preview
+
+Save the three API responses separately as manga.json, chapters.json, chapter.json. Run `go run . preview-source manga.json chapters.json chapter.json`. The command validates identity, chapter membership, cursor metadata, filenames and dimensions, and prints a metadata summary without network requests or database writes. Source status remains numeric until its mapping is documented. No image URL generation, downloading, publication or synchronization is performed. Use authorized ZIP packages for reader testing. The recommendation envelope and general catalog list are not parsed in this release.
