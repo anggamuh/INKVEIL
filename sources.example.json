@@ -1,0 +1,17 @@
+[
+  {
+    "id": "licensed-partner",
+    "name": "Licensed partner",
+    "adapter": "offline-json",
+    "base_url": "https://example.org/v1",
+    "enabled": false,
+    "permission_reference": ""
+  },
+  {
+    "id": "local-project",
+    "name": "Original project",
+    "adapter": "local-package",
+    "enabled": false,
+    "permission_reference": ""
+  }
+]

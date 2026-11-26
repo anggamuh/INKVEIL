@@ -1,0 +1,3 @@
+# Source configuration foundation
+
+Copy sources.example.json to sources.local.json. Edit the stable source ID, display name, adapter, optional HTTPS base URL and permission reference. Run `go run . check-sources sources.local.json` to validate locally. Enabled entries require a permission reference; this is operator-supplied, not verified. Base URL is descriptive configuration only; this release does not contact any host, change the preview parser, register sources in MySQL or implement automatic imports. The local file is gitignored. Supported adapter labels are offline-json and local-package. Future adapters must enforce their own network access policy and source permissions.
