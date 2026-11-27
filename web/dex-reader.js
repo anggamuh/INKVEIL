@@ -11,21 +11,28 @@
   refreshing=(async()=>{const u=new URL(location.href);u.searchParams.set('manifest','1');const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('Manifest '+r.status);const m=await r.json();if(!Array.isArray(m.images)||m.images.length!==pages.length)throw Error('Page count changed');pages.forEach((img,i)=>img.dataset.dexPage=m.images[i]);})();
   try{await refreshing;}finally{refreshing=null;}
  };
- const report=async(url,success,cached,bytes,duration)=>{try{await fetch('https://api.mangadex.network/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,success,cached,bytes,duration}),keepalive:true});}catch{}};
+ // Render independently of telemetry. If CORS fetch fails, use normal image loading.
+ const report=(url,success,cached,bytes,duration)=>{fetch('https://api.mangadex.network/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,success,cached,bytes,duration}),keepalive:true,signal:AbortSignal.timeout(5000)}).catch(()=>{});};
+ const display=(img,src)=>new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>finish(false),18000);
+  const finish=ok=>{clearTimeout(timer);img.onload=null;img.onerror=null;if(ok)resolve();else reject(Error('Image load failed'));};
+  img.onload=()=>finish(true);img.onerror=()=>finish(false);img.src=src;
+ });
  const getImage=async(img)=>{
   const url=img.dataset.dexPage,start=performance.now();
   let response,blob;
-  try{response=await fetch(url,{credentials:'omit',signal:AbortSignal.timeout(20000)});if(!response.ok)throw Error('HTTP '+response.status);blob=await response.blob();if(!blob.type.startsWith('image/'))throw Error('Not an image');}
-  catch(e){if(response)await report(url,false,false,0,Math.round(performance.now()-start));throw e;}
-  await report(url,true,(response.headers.get('X-Cache')||'').startsWith('HIT'),blob.size,Math.round(performance.now()-start));
-  const objectURL=URL.createObjectURL(blob);
-  try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=objectURL;});}finally{URL.revokeObjectURL(objectURL);img.onload=null;img.onerror=null;}
+  try{response=await fetch(url,{credentials:'omit',signal:AbortSignal.timeout(8000)});}
+  catch{await display(img,url);return;}
+  if(!response.ok){report(url,false,false,0,Math.round(performance.now()-start));throw Error('HTTP '+response.status);}
+  try{blob=await response.blob();if(!blob.type.startsWith('image/'))throw Error('Not an image');const objectURL=URL.createObjectURL(blob);try{await display(img,objectURL);}finally{URL.revokeObjectURL(objectURL);}}
+  catch(e){report(url,false,false,0,Math.round(performance.now()-start));throw e;}
+  report(url,true,(response.headers.get('X-Cache')||'').startsWith('HIT'),blob.size,Math.round(performance.now()-start));
  };
  const run=async(img)=>{
   const error=img.parentElement.querySelector('.dex-page-error');
   try{try{await getImage(img);}catch{await refresh();await new Promise(r=>setTimeout(r,700));await getImage(img);}
    img.classList.add('loaded');img.classList.remove('failed');loaded.add(img);failed.delete(img);if(error)error.hidden=true;
-  }catch{img.classList.add('failed');failed.add(img);if(error)error.hidden=false;}
+  }catch(e){console.warn('INKVEIL page load:',e);img.classList.add('failed');failed.add(img);if(error)error.hidden=false;}
   finally{queued.delete(img);active--;update();pump();}
  };
  const pump=()=>{while(active<3&&queue.length){const img=queue.shift();active++;run(img);}};
