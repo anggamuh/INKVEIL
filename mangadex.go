@@ -36,7 +36,7 @@ type dexChapterEntity struct {
  Attributes struct {
  Title *string
  Chapter *string
- TranslatedLanguage,ExternalURL string
+ TranslatedLanguage,ExternalURL,PublishAt,ReadableAt string
  Pages int
  }
  Relationships []dexRelationship
@@ -48,7 +48,7 @@ type dexDetailResponse struct{Result string;Data dexEntity}
 type dexTagOption struct{ID,Name string}
 type dexTagResponse struct{Result string;Data []struct{ID string;Attributes struct{Name map[string]string;Group string}}}
 type dexChapterRow struct{ID,Number,Language,Group string}
-type dexView struct{Sort,Tag string;TagOptions []dexTagOption;Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError,IndexedSearch,SuwayomiError bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
+type dexView struct{Sort,Tag string;TagOptions []dexTagOption;Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError,IndexedSearch,SuwayomiError,ReleaseFeed bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
 var dexRateMu sync.Mutex
 var dexNext time.Time
 func dexFetch(ctx context.Context,path string,q url.Values,out any)error{
@@ -87,6 +87,12 @@ func dexList(w http.ResponseWriter,r *http.Request){
  var tags dexTagResponse
  if source!="local"&&dexFetch(r.Context(),"/manga/tag",nil,&tags)==nil&&tags.Result=="ok"{for _,t:=range tags.Data{if t.Attributes.Group=="genre"&&sourceUUID.MatchString(t.ID){v.TagOptions=append(v.TagOptions,dexTagOption{t.ID,dexText(t.Attributes.Name)})}}}
  if tag!=""&&source==""{source="mangadex";v.Source=source}
+ if strings.TrimSpace(q)==""&&source!="local"&&tag==""&&sortMode=="latest"{
+  v.ReleaseFeed=true
+  cards,dexErr,swErr:=recentReleaseFeed(r.Context(),lang,source,kind)
+  v.LiveError=dexErr;v.SuwayomiError=swErr
+  v.Cards=unifiedPage(cards,offset);dexPage(&v,offset,discoveryPageSize,len(cards));dexCoverPolicy(w);render(w,"dex_list",v);return
+ }
  if suwayomiEnabled()&&lang=="id"&&source==""&&tag==""&&sortMode=="latest"{
  cards,err:=suwayomiDiscovery(r.Context(),q,kind);v.SuwayomiError=err!=nil
  global,globalErr:=suwayomiGlobalSearch(r.Context(),q,kind);if globalErr!=nil{v.SuwayomiError=true};cards=unifiedMerge(cards,global)
