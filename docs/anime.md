@@ -1,0 +1,6 @@
+# INKVEIL Theater
+Local, authorized MP4 collections only. No scraping, remote anime sources, Jellyfin adapter, transcoding, DRM bypass or Suwayomi anime API. Use private mobile mode for any tunnel; do not expose a public unauthenticated instance. Set INKVEIL_ANIME_PERMISSION=yes and optionally INKVEIL_ANIME_DIR. Default data/anime (ignored by Git). Place catalog.json and authorized MP4 files (H.264/AAC recommended) and optional Indonesian WebVTT subtitles inside that directory. Filenames are single basenames, no subdirectories or symlinks. JSON example below:
+```json
+[{"id":"my-anime","title":"My anime","genre":"Adventure","description":"Personal collection","episodes":[{"id":"ep-1","title":"Episode 1","file":"episode-1.mp4","subtitle":"episode-1.vtt"}]}]
+```
+PowerShell: `$env:INKVEIL_ANIME_PERMISSION="yes"`, then run existing start.ps1 flags. Open /anime. Native HTML5 video, range seeking, local browser resume and watchlist toggle, auto-next opt-in. No cross-device account sync yet, no poster metadata, no watchlist dedicated view. Browser compatibility and ngrok bandwidth/time limits vary. No media included. Tests need execution.
