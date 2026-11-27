@@ -2,6 +2,7 @@ package main
 
 import (
  "context"
+ "os"
  "fmt"
  "log"
  "net/http"
@@ -16,6 +17,7 @@ type dexEntity struct {
  ID,Type string
  Attributes struct {
  Title,Description map[string]string
+ AltTitles []map[string]string
  Tags []struct{Attributes struct{Name map[string]string}}
  FileName,Status,OriginalLanguage,LatestUploadedChapter string
  Year *int
@@ -64,7 +66,7 @@ func dexText(m map[string]string)string{
 }
 func dexTitle(d dexEntity)liveTitle{
  t:=liveTitle{ID:d.ID,Title:dexText(d.Attributes.Title),Description:dexText(d.Attributes.Description),Type:"Manga"}
- t.Status=d.Attributes.Status; switch d.Attributes.OriginalLanguage{case "ko":t.Type="Manhwa";case "zh","zh-hk":t.Type="Manhua"};for _,rel:=range d.Relationships{if rel.Type=="cover_art"&&sourceUUID.MatchString(d.ID)&&dexFile.MatchString(rel.Attributes.FileName){t.CoverURL="/dex-cover/"+d.ID+"/"+rel.Attributes.FileName+".256.jpg"};if rel.Type=="author"&&rel.Attributes.Name!=""{t.Author=rel.Attributes.Name}};var tags []string;for _,tag:=range d.Attributes.Tags{if n:=dexText(tag.Attributes.Name);n!=""{tags=append(tags,n)}};t.Genre=strings.Join(tags,", ");return t
+ if d.Attributes.Year!=nil{t.Year=*d.Attributes.Year};for _,names:=range d.Attributes.AltTitles{for _,name:=range names{if strings.TrimSpace(name)!=""{t.Aliases=append(t.Aliases,name)}}};for _,name:=range d.Attributes.Title{t.Aliases=append(t.Aliases,name)};t.Status=d.Attributes.Status; switch d.Attributes.OriginalLanguage{case "ko":t.Type="Manhwa";case "zh","zh-hk":t.Type="Manhua"};for _,rel:=range d.Relationships{if rel.Type=="cover_art"&&sourceUUID.MatchString(d.ID)&&dexFile.MatchString(rel.Attributes.FileName){t.CoverURL="/dex-cover/"+d.ID+"/"+rel.Attributes.FileName+".256.jpg"};if rel.Type=="author"&&rel.Attributes.Name!=""{t.Author=rel.Attributes.Name}};var tags []string;for _,tag:=range d.Attributes.Tags{if n:=dexText(tag.Attributes.Name);n!=""{tags=append(tags,n)}};t.Genre=strings.Join(tags,", ");return t
 }
 func dexOffset(r *http.Request)(int,error){s:=r.URL.Query().Get("offset");if s==""{return 0,nil};n,e:=strconv.Atoi(s);if e!=nil||n<0||n>9900{return 0,fmt.Errorf("invalid offset")};return n,nil}
 func dexLanguage(r *http.Request)string{if r.URL.Query().Get("lang")=="en"{return "en"};return "id"}
@@ -85,6 +87,7 @@ func dexList(w http.ResponseWriter,r *http.Request){
  var tags dexTagResponse
  if source!="local"&&dexFetch(r.Context(),"/manga/tag",nil,&tags)==nil&&tags.Result=="ok"{for _,t:=range tags.Data{if t.Attributes.Group=="genre"&&sourceUUID.MatchString(t.ID){v.TagOptions=append(v.TagOptions,dexTagOption{t.ID,dexText(t.Attributes.Name)})}}}
  if tag!=""&&source==""{source="mangadex";v.Source=source}
+ if os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes"&&source==""&&tag==""&&sortMode=="latest"{if cards,ok:=unifiedCatalogSnapshot(lang,q,kind);ok{v.Cards=unifiedPage(cards,offset);dexPage(&v,offset,discoveryPageSize,len(cards));dexCoverPolicy(w);render(w,"dex_list",v);return}}
  var local []discoveryCard
  if source!="mangadex"{catalogMu.RLock();local=localDiscovery(catalog,q,kind);catalogMu.RUnlock()}
  v.LocalCount=len(local)
@@ -95,7 +98,7 @@ func dexList(w http.ResponseWriter,r *http.Request){
  params.Set("limit",strconv.Itoa(remoteLimit));params.Set("offset",strconv.Itoa(remoteOffset))
  e=dexFetch(r.Context(),"/manga",params,&d)
  if e!=nil||d.Result!="ok"||len(d.Data)>remoteLimit{v.LiveError=true;log.Printf("MangaDex catalog: %v",e)}else{
- for _,item:=range d.Data{t:=dexTitle(item);if sourceUUID.MatchString(t.ID)&&t.Title!=""{v.Cards=append(v.Cards,remoteDiscovery(t,lang))}}
+ for _,item:=range d.Data{t:=dexTitle(item);if sourceUUID.MatchString(t.ID)&&t.Title!=""{candidate:=remoteDiscovery(t,lang);if !unifiedContains(local,candidate){v.Cards=append(v.Cards,candidate)}}}
  total+=d.Total
  }
  }else if source!="local"&&remoteLimit==0&&offset+discoveryPageSize>=total{total=offset+discoveryPageSize+1}
