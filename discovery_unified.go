@@ -10,6 +10,8 @@ type discoveryCard struct {
  Author string
  Aliases []string
  Year int
+ ReleasedAt int64 `json:"releasedAt,omitempty"`
+ ReleaseDate string `json:"releaseDate,omitempty"`
 }
 func localDiscovery(items []Comic,q,kind string)[]discoveryCard{
  result:=[]discoveryCard{}
