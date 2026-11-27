@@ -1,0 +1,3 @@
+# Catalog search resilience
+
+Indexed title search combines the stored filtered results with the first 100 matching live MangaDex results, with Original Project > MangaDex > extra priority. A dedicated MangaDex link permits further live search. If live search fails, stored matches remain visible. Merged aliases are retained. A linked metadata scraper failure during refresh is logged and the fresh primary catalog is published without linked entries for that refresh; a failed supplemental API refresh preserves the previous snapshot instead. No new provider, image or chapter integration. The search is bounded, not exhaustive, and ambiguous metadata can still produce duplicates. Tests added but not executed.

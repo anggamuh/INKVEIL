@@ -48,7 +48,7 @@ type dexDetailResponse struct{Result string;Data dexEntity}
 type dexTagOption struct{ID,Name string}
 type dexTagResponse struct{Result string;Data []struct{ID string;Attributes struct{Name map[string]string;Group string}}}
 type dexChapterRow struct{ID,Number,Language,Group string}
-type dexView struct{Sort,Tag string;TagOptions []dexTagOption;Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
+type dexView struct{Sort,Tag string;TagOptions []dexTagOption;Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError,IndexedSearch bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
 var dexRateMu sync.Mutex
 var dexNext time.Time
 func dexFetch(ctx context.Context,path string,q url.Values,out any)error{
@@ -87,7 +87,7 @@ func dexList(w http.ResponseWriter,r *http.Request){
  var tags dexTagResponse
  if source!="local"&&dexFetch(r.Context(),"/manga/tag",nil,&tags)==nil&&tags.Result=="ok"{for _,t:=range tags.Data{if t.Attributes.Group=="genre"&&sourceUUID.MatchString(t.ID){v.TagOptions=append(v.TagOptions,dexTagOption{t.ID,dexText(t.Attributes.Name)})}}}
  if tag!=""&&source==""{source="mangadex";v.Source=source}
- if os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes"&&source==""&&tag==""&&sortMode=="latest"{if cards,ok:=unifiedCatalogSnapshot(lang,q,kind);ok{v.Cards=unifiedPage(cards,offset);dexPage(&v,offset,discoveryPageSize,len(cards));dexCoverPolicy(w);render(w,"dex_list",v);return}}
+ if os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes"&&source==""&&tag==""&&sortMode=="latest"{if cards,ok:=unifiedCatalogSnapshot(lang,q,kind);ok{if strings.TrimSpace(q)!=""{v.IndexedSearch=true;params.Set("limit","100");params.Set("offset","0");var live dexListResponse;if e:=dexFetch(r.Context(),"/manga",params,&live);e!=nil||live.Result!="ok"||len(live.Data)>100{v.LiveError=true}else{fresh:=[]discoveryCard{};for _,item:=range live.Data{t:=dexTitle(item);if sourceUUID.MatchString(t.ID)&&t.Title!=""{fresh=append(fresh,remoteDiscovery(t,lang))}};cards=mergeIndexedSearch(cards,fresh)}};v.Cards=unifiedPage(cards,offset);dexPage(&v,offset,discoveryPageSize,len(cards));dexCoverPolicy(w);render(w,"dex_list",v);return}}
  var local []discoveryCard
  if source!="mangadex"{catalogMu.RLock();local=localDiscovery(catalog,q,kind);catalogMu.RUnlock()}
  v.LocalCount=len(local)
