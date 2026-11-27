@@ -84,7 +84,7 @@ func suwayomiTitle(ctx context.Context,id int, sources map[string]string, chapte
 }
 
 func suwayomiLibraryMode() bool {return os.Getenv("INKVEIL_SUWAYOMI_LIBRARY")=="yes"}
-func suwayomiAllowed(m suwayomiManga) bool {return suwayomiIDs()[m.ID] || (suwayomiLibraryMode() && m.InLibrary)}
+func suwayomiAllowed(m suwayomiManga) bool {return suwayomiIDs()[m.ID] || (suwayomiLibraryMode() && m.InLibrary) || suwayomiGlobalSource(m.SourceID)}
 func suwayomiCover(m suwayomiManga) string {
  path:=fmt.Sprintf("/api/v1/manga/%d/thumbnail",m.ID)
  if m.ThumbnailURL==path || m.ThumbnailURL==suwayomiOrigin+path{return suwayomiOrigin+path}
@@ -124,9 +124,9 @@ func unifiedSuwayomi(ctx context.Context,lang string)([]discoveryCard,error){
 
 func suwayomiDetailHandler(w http.ResponseWriter,r *http.Request){
  id,e:=strconv.Atoi(r.PathValue("id"))
- if e!=nil||!suwayomiEnabled()||id<=0||(!suwayomiIDs()[id]&&!suwayomiLibraryMode()){http.NotFound(w,r);return}
+ if e!=nil||!suwayomiEnabled()||id<=0||(!suwayomiIDs()[id]&&!suwayomiLibraryMode()&&strings.TrimSpace(os.Getenv("INKVEIL_SUWAYOMI_SEARCH_SOURCES"))==""){http.NotFound(w,r);return}
  sources,e:=suwayomiSources(r.Context());if e!=nil{http.Error(w,"Suwayomi unavailable",502);return}
- m,e:=suwayomiTitle(r.Context(),id,sources,true);if e!=nil{http.Error(w,"Suwayomi title unavailable",502);return}
+ m,e:=suwayomiOpenTitle(r.Context(),id,sources);if e!=nil{http.Error(w,"Suwayomi title unavailable",502);return}
  if !suwayomiAllowed(m){http.NotFound(w,r);return}
  sort.SliceStable(m.Chapters.Nodes,func(i,j int)bool{return m.Chapters.Nodes[i].ChapterNumber>m.Chapters.Nodes[j].ChapterNumber})
  suwayomiImagePolicy(w)
