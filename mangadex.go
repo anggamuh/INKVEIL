@@ -59,15 +59,32 @@ func dexTitle(d dexEntity)liveTitle{
 func dexOffset(r *http.Request)(int,error){s:=r.URL.Query().Get("offset");if s==""{return 0,nil};n,e:=strconv.Atoi(s);if e!=nil||n<0||n>9900{return 0,fmt.Errorf("invalid offset")};return n,nil}
 func dexLanguage(r *http.Request)string{if r.URL.Query().Get("lang")=="en"{return "en"};return "id"}
 func dexPage(v *dexView,offset,limit,total int){v.Offset=offset;v.HasNext=offset+limit<total&&offset+limit<=9900;v.Next=offset+limit;v.HasPrev=offset>0;v.Prev=offset-limit;if v.Prev<0{v.Prev=0}}
+const discoveryPageSize=24
+func discoveryWindow(localCount,offset int)(start,end,remoteOffset,remoteLimit int){
+ start=offset;if start>localCount{start=localCount};end=start+discoveryPageSize;if end>localCount{end=localCount};remoteOffset=offset-localCount;if remoteOffset<0{remoteOffset=0};remoteLimit=discoveryPageSize-(end-start);return
+}
 func dexList(w http.ResponseWriter,r *http.Request){
  offset,e:=dexOffset(r);q:=r.URL.Query().Get("q");lang:=dexLanguage(r);if e!=nil||len(q)>200{http.Error(w,"Invalid query",400);return}
  source:=r.URL.Query().Get("source");if source!="local"&&source!="mangadex"{source=""}
  var d dexListResponse
- params:=url.Values{"limit":{"20"},"offset":{strconv.Itoa(offset)},"availableTranslatedLanguage[]":{lang},"contentRating[]":{"safe","suggestive"},"order[latestUploadedChapter]":{"desc"},"includes[]":{"cover_art","author"}};if strings.TrimSpace(q)!=""{params.Set("title",q)}
+ params:=url.Values{"limit":{"24"},"offset":{strconv.Itoa(offset)},"availableTranslatedLanguage[]":{lang},"contentRating[]":{"safe","suggestive"},"order[latestUploadedChapter]":{"desc"},"includes[]":{"cover_art","author"}};if strings.TrimSpace(q)!=""{params.Set("title",q)}
  kind:=r.URL.Query().Get("kind");switch kind{case "Manga":params["originalLanguage[]"]=[]string{"ja"};case "Manhwa":params["originalLanguage[]"]=[]string{"ko"};case "Manhua":params["originalLanguage[]"]=[]string{"zh","zh-hk"};default:kind=""}
  v:=dexView{Query:q,Language:lang,Kind:kind,Source:source}
- if source!="mangadex"{catalogMu.RLock();local:=localDiscovery(catalog,q,kind);catalogMu.RUnlock();v.LocalCount=len(local);if source=="local"{start:=offset;if start>len(local){start=len(local)};end:=start+20;if end>len(local){end=len(local)};v.Cards=append(v.Cards,local[start:end]...);dexPage(&v,offset,20,len(local))}else if offset==0{v.Cards=append(v.Cards,local...)}}
- if source!="local"{e=dexFetch(r.Context(),"/manga",params,&d);if e!=nil||d.Result!="ok"||len(d.Data)>20{v.LiveError=true;log.Printf("MangaDex catalog: %v",e)}else{for _,item:=range d.Data{t:=dexTitle(item);if sourceUUID.MatchString(t.ID)&&t.Title!=""{v.Cards=append(v.Cards,remoteDiscovery(t,lang))}};dexPage(&v,offset,20,d.Total)}}
+ var local []discoveryCard
+ if source!="mangadex"{catalogMu.RLock();local=localDiscovery(catalog,q,kind);catalogMu.RUnlock()}
+ v.LocalCount=len(local)
+ start,end,remoteOffset,remoteLimit:=discoveryWindow(len(local),offset)
+ v.Cards=append(v.Cards,local[start:end]...)
+ total:=len(local)
+ if source!="local"&&remoteLimit>0{
+ params.Set("limit",strconv.Itoa(remoteLimit));params.Set("offset",strconv.Itoa(remoteOffset))
+ e=dexFetch(r.Context(),"/manga",params,&d)
+ if e!=nil||d.Result!="ok"||len(d.Data)>remoteLimit{v.LiveError=true;log.Printf("MangaDex catalog: %v",e)}else{
+ for _,item:=range d.Data{t:=dexTitle(item);if sourceUUID.MatchString(t.ID)&&t.Title!=""{v.Cards=append(v.Cards,remoteDiscovery(t,lang))}}
+ total+=d.Total
+ }
+ }else if source!="local"&&remoteLimit==0&&offset+discoveryPageSize>=total{total=offset+discoveryPageSize+1}
+ dexPage(&v,offset,discoveryPageSize,total)
  dexCoverPolicy(w);render(w,"dex_list",v)
 }
 func dexDetail(w http.ResponseWriter,r *http.Request){

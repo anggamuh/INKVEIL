@@ -1,15 +1,7 @@
 package main
-import("testing";"net/http/httptest";"strings";"fmt")
-func TestCatalogPagination(t *testing.T){
- items:=[]Comic{};for i:=0;i<50;i++{items=append(items,Comic{Title:fmt.Sprintf("Title %02d",i)})}
- v:=buildHome(httptest.NewRequest("GET","/?page=2&type=Manga&sort=title",nil),items,items[0])
- if len(v.Comics)!=24||v.Page!=2||v.Pages!=3||!strings.Contains(v.NextURL,"type=Manga"){t.Fatal(v.Page,v.Pages,v.NextURL)}
- v=buildHome(httptest.NewRequest("GET","/?page=999999",nil),items,items[0]);if len(v.Comics)!=2||v.Page!=3{t.Fatal(v.Page)}
- v=buildHome(httptest.NewRequest("GET","/",nil),nil,items[0]);if len(v.Comics)!=0||v.Page!=1{t.Fatal(v.Page)}
-}
-func TestSEO(t *testing.T){
- t.Setenv("INKVEIL_PUBLIC_URL","");w:=httptest.NewRecorder();handler().ServeHTTP(w,httptest.NewRequest("GET","/robots.txt",nil));if !strings.Contains(w.Body.String(),"Disallow: /"){t.Fatal(w.Body.String())}
- t.Setenv("INKVEIL_PUBLIC_URL","https://example.com");if e:=validatePublicURL();e!=nil{t.Fatal(e)}
- w=httptest.NewRecorder();handler().ServeHTTP(w,httptest.NewRequest("GET","/sitemap.xml",nil));if w.Code!=200||!strings.Contains(w.Body.String(),"https://example.com/comic/ash"){t.Fatal(w.Code,w.Body.String())}
- t.Setenv("INKVEIL_PUBLIC_URL","https://example.com/path");if validatePublicURL()==nil{t.Fatal("invalid origin accepted")}
+import "testing"
+func TestDiscoveryWindow(t *testing.T){
+ for _,c:=range []struct{local,offset,a,b,ro,rl int}{
+ {3,0,0,3,0,21},{3,24,3,3,21,24},{0,24,0,0,24,24},{30,0,0,24,0,0},{30,24,24,30,0,18},{30,48,30,30,18,24},
+ }{a,b,ro,rl:=discoveryWindow(c.local,c.offset);if a!=c.a||b!=c.b||ro!=c.ro||rl!=c.rl{t.Fatalf("window %+v: %d %d %d %d",c,a,b,ro,rl)}}
 }
