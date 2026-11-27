@@ -39,6 +39,7 @@ func configuredHandler(provider string) http.Handler {
  mux.HandleFunc("GET /personal.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/personal.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /dex-reader.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/dex-reader.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /suwayomi/{id}",suwayomiDetailHandler)
+ mux.HandleFunc("GET /suwayomi/{id}/{chapter}",suwayomiReaderHandler)
  mux.HandleFunc("GET /extra/{id}",extraDetailHandler)
  mux.HandleFunc("GET /extra/{id}/{chapter}",extraReaderHandler)
  mux.HandleFunc("GET /live",liveListHandler)
@@ -86,7 +87,7 @@ func configuredHandler(provider string) http.Handler {
  w.Header().Set("Content-Security-Policy","default-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  if r.Method=="GET"&&(r.URL.Path=="/"||r.URL.Path=="/series")&&provider=="mangadex"{dexList(w,r);return}
  if r.URL.Path=="/api/dex-library"{mux.ServeHTTP(w,r);return}
- if strings.HasPrefix(r.URL.Path,"/extra/")||r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/")||strings.HasPrefix(r.URL.Path,"/dex-cover/")||strings.HasPrefix(r.URL.Path,"/dex-page/"){mux.ServeHTTP(w,r);return}
+ if strings.HasPrefix(r.URL.Path,"/suwayomi/")||strings.HasPrefix(r.URL.Path,"/extra/")||r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/")||strings.HasPrefix(r.URL.Path,"/dex-cover/")||strings.HasPrefix(r.URL.Path,"/dex-page/"){mux.ServeHTTP(w,r);return}
  if strings.HasPrefix(r.URL.Path,"/admin/") && r.URL.Path!="/admin/analytics"{mux.ServeHTTP(w,r);return}
  if r.Method=="POST" && r.URL.Path=="/admin" {mux.ServeHTTP(w,r);return}
  catalogMu.RLock();defer catalogMu.RUnlock()

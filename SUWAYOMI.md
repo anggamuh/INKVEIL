@@ -1,12 +1,12 @@
-# Suwayomi local metadata adapter
+# Suwayomi localhost integration
 
-This opt-in adapter reads metadata for explicitly approved manga IDs from an existing local Suwayomi installation. Only Indonesian sources are accepted. Use only titles for which your use is authorized. No upstream scraper, image proxy, downloads or anti-bot workaround is included.
+Use only titles for which integration and reading are authorized. Keep both servers on loopback. Enable optional import of your authorized Suwayomi library (not all installed-source catalogs), or specify explicit manga IDs. Library mode treats library membership as your selection of authorized titles. Refresh after adding/removing titles. Covers and chapter pages are loaded directly by the browser from the fixed local server; no upstream scraper, image proxy, bypass, or watermark modification. Reader is separately opt-in. The API schema and paths match current upstream source; installed-version compatibility remains to be tested.
 
-PowerShell:
 ```powershell
 $env:INKVEIL_SUWAYOMI_URL="http://127.0.0.1:4567"
 $env:INKVEIL_SUWAYOMI_PERMISSION="yes"
-$env:INKVEIL_SUWAYOMI_MANGA_IDS="2"
+$env:INKVEIL_SUWAYOMI_LIBRARY="yes"
+$env:INKVEIL_SUWAYOMI_READER="yes"
 $env:INKVEIL_UNIFIED_INDEX="yes"
 $env:INKVEIL_LIVE_PROVIDER="mangadex"
 go test ./...
@@ -14,4 +14,4 @@ go run . refresh-catalog
 go run .
 ```
 
-Replace 2 with the local ID(s) of titles you are authorized to integrate. The catalog snapshot uses existing MySQL storage and conservative author/title matching. The detail route lists stored chapters and links to the local Suwayomi UI; embedded reading and automatic source discovery are not implemented. Suwayomi outages do not prevent a MangaDex snapshot. Unset permission to hide entries. Keep both services bound to loopback.
+Alternatively set INKVEIL_SUWAYOMI_MANGA_IDS to approved IDs and omit library mode. Import up to 1000 library records, only Indonesian sources. Existing MySQL catalog, conservative deduplication, and MangaDex fallback remain. Browser must have access to the same local Suwayomi server. Reader requires stored chapter metadata and returns an error if page URLs deviate from the expected local route. No automatic remote catalog enumeration.
