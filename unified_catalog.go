@@ -97,5 +97,5 @@ func extraReaderHandler(w http.ResponseWriter,r *http.Request){
 func mergeIndexedSearch(indexed,fresh []discoveryCard)[]discoveryCard{
  local,remote,extra:=[]discoveryCard{},[]discoveryCard{},[]discoveryCard{}
  for _,c:=range indexed{switch c.Source{case "Original Project":local=append(local,c);case "MangaDex":remote=append(remote,c);default:extra=append(extra,c)}}
- return unifiedMerge(local,fresh,remote,extra)
+ return preferSuwayomi(local,fresh,remote,extra)
 }

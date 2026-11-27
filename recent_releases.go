@@ -57,7 +57,9 @@ func recentSuwayomiReleases(ctx context.Context)([]discoveryCard,error){
 func mergeRecentReleases(cards []discoveryCard,kind string)[]discoveryCard{
  filtered:=[]discoveryCard{};for _,c:=range cards{if c.ReleasedAt>0&&(kind==""||strings.EqualFold(c.Type,kind)){filtered=append(filtered,c)}}
  sort.SliceStable(filtered,func(i,j int)bool{if filtered[i].ReleasedAt==filtered[j].ReleasedAt{return filtered[i].Href<filtered[j].Href};return filtered[i].ReleasedAt>filtered[j].ReleasedAt})
- return unifiedMerge(filtered)
+ out:=preferSuwayomi(filtered)
+ sort.SliceStable(out,func(i,j int)bool{if out[i].ReleasedAt==out[j].ReleasedAt{return out[i].Href<out[j].Href};return out[i].ReleasedAt>out[j].ReleasedAt})
+ return out
 }
 var releasesMu sync.Mutex
 var releasesCache=map[string]struct{Cards []discoveryCard;Expires time.Time}{}
