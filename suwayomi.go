@@ -136,7 +136,7 @@ func suwayomiDetailHandler(w http.ResponseWriter,r *http.Request){
 
 func suwayomiReaderEnabled()bool{return suwayomiEnabled()&&os.Getenv("INKVEIL_SUWAYOMI_READER")=="yes"}
 func suwayomiImagePolicy(w http.ResponseWriter){
- w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' "+suwayomiOrigin+"; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+ w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' blob: "+suwayomiOrigin+"; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 }
 func suwayomiPageURL(id int,path string)string{
  prefix:=fmt.Sprintf("/api/v1/manga/%d/chapter/",id)
