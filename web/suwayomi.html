@@ -4,7 +4,7 @@
 <section class="dex-detail">
 <aside class="dex-detail-side"><div class="dex-cover">{{if .Cover}}<img src="{{.Cover}}" alt="Cover {{.Manga.Title}}">{{else}}<span>INKVEIL</span>{{end}}</div>
 {{if and .Reader .Manga.Chapters.Nodes}}{{$latest := index .Manga.Chapters.Nodes 0}}<a class="button dex-primary" href="/suwayomi/{{.Manga.ID}}/{{$latest.ID}}">▶ Baca chapter terbaru</a>{{end}}
-<button type="button" class="secondary" data-personal-bookmark>Simpan komik</button>{{if .Reader}}<a class="button secondary" data-personal-resume hidden>Lanjut membaca</a>{{end}}<p data-personal-update hidden></p><a class="button secondary" href="#suwayomi-chapters">Daftar chapter</a><a class="button secondary" href="{{.URL}}" rel="noreferrer">Buka sumber ↗</a></aside>
+<button type="button" class="secondary" data-personal-bookmark>Simpan komik</button>{{if .Reader}}<a class="button secondary" data-personal-resume hidden>Lanjut membaca</a>{{end}}<p data-personal-update hidden></p><a class="button secondary" href="#suwayomi-chapters">Daftar chapter</a><a class="button secondary iv-local-source-link" href="{{.URL}}" rel="noreferrer">Buka sumber (PC lokal) ↗</a></aside>
 <div class="dex-detail-info"><small class="iv-eyebrow">{{.Source}} / SUWAYOMI</small><h1>{{.Manga.Title}}</h1>
 <p class="dex-accent">{{if and .Manga.Status (ne .Manga.Status "UNKNOWN")}}{{.Manga.Status}} · {{end}}Indonesia</p>
 <div class="dex-facts"><div><strong>{{len .Manga.Chapters.Nodes}}</strong><small>Chapter (id)</small></div><div><strong>—</strong><small>Tahun</small></div><div><strong>ID</strong><small>Bahasa</small></div></div>

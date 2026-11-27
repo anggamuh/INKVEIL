@@ -87,7 +87,7 @@ func suwayomiLibraryMode() bool {return os.Getenv("INKVEIL_SUWAYOMI_LIBRARY")=="
 func suwayomiAllowed(m suwayomiManga) bool {return suwayomiIDs()[m.ID] || (suwayomiLibraryMode() && m.InLibrary) || suwayomiGlobalSource(m.SourceID)}
 func suwayomiCover(m suwayomiManga) string {
  path:=fmt.Sprintf("/api/v1/manga/%d/thumbnail",m.ID)
- if m.ThumbnailURL==path || m.ThumbnailURL==suwayomiOrigin+path{return suwayomiOrigin+path}
+ if m.ThumbnailURL==path || m.ThumbnailURL==suwayomiOrigin+path{if suwayomiPrivateMobile(){return fmt.Sprintf("/sw-cover/%d",m.ID)};return suwayomiOrigin+path}
  return ""
 }
 func suwayomiDiscoveryKey() string{return os.Getenv("INKVEIL_SUWAYOMI_MANGA_IDS")+"|"+os.Getenv("INKVEIL_SUWAYOMI_LIBRARY")}
@@ -159,6 +159,7 @@ func suwayomiReaderHandler(w http.ResponseWriter,r *http.Request){
  p:=d.FetchChapterPages
  if p.Chapter.ID!=chapter||p.Chapter.MangaID!=id||len(p.Pages)==0||len(p.Pages)>500{http.Error(w,"Invalid chapter response",502);return}
  urls:=make([]string,0,len(p.Pages));for _,raw:=range p.Pages{u:=suwayomiPageURL(id,raw);if u==""{http.Error(w,"Invalid page URL",502);return};urls=append(urls,u)}
+ if suwayomiPrivateMobile(){urls,e=swRegisterPages(urls);if e!=nil{http.Error(w,"Image session unavailable",503);return}}
  v:=struct{ID,Prev,Next,ChapterID int;Title,Chapter,Source string;Images []string}{ID:id,ChapterID:chapter,Title:m.Title,Chapter:m.Chapters.Nodes[idx].Name,Source:sources[m.SourceID],Images:urls}
  if idx>0{v.Prev=m.Chapters.Nodes[idx-1].ID};if idx+1<len(m.Chapters.Nodes){v.Next=m.Chapters.Nodes[idx+1].ID}
  suwayomiImagePolicy(w);w.Header().Set("Cache-Control","no-store");render(w,"suwayomi_reader",v)

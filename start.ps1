@@ -1,4 +1,4 @@
-param([switch]$AuthorizedSuwayomiLibrary,[string]$AuthorizedSearchSources="",[switch]$Refresh)
+param([switch]$AuthorizedSuwayomiLibrary,[string]$AuthorizedSearchSources="",[switch]$Refresh,[switch]$PrivateMobile)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 if (-not (Get-Command go -ErrorAction SilentlyContinue)) { $env:Path += ';C:\Program Files\Go\bin' }
@@ -21,6 +21,14 @@ if ($Refresh) {
  if (-not $env:INKVEIL_MYSQL_DSN) { throw 'Set INKVEIL_MYSQL_DSN before refreshing the MySQL index.' }
  go run . refresh-catalog
  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+if ($PrivateMobile) {
+ $env:INKVEIL_PRIVATE_MOBILE = 'yes'
+ if (-not $env:INKVEIL_MOBILE_PASSWORD) {
+  $secret = Read-Host 'Password akses pribadi (minimal 16 karakter)' -AsSecureString
+  $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)
+  try { $env:INKVEIL_MOBILE_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
+ }
 }
 go run .
 exit $LASTEXITCODE
