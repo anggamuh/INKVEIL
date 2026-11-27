@@ -27,7 +27,7 @@ func dexImages(h dexHomeResponse)([]string,string,error){
  return out,origin,nil
 }
 type dexReaderView struct{ID,Title,Number,Chapter,Group,Language,Prev,Next string;Offset int;Images []string;Unavailable bool}
-func dexBlocked(d dexEntity)bool{
+func dexBlocked(d dexChapterEntity)bool{
  for _,rel:=range d.Relationships{if rel.Type=="scanlation_group"{for _,id:=range strings.Split(os.Getenv("INKVEIL_DEX_BLOCKED_GROUPS"),","){if strings.TrimSpace(id)==rel.ID{return true}}}}
  return false
 }
@@ -37,7 +37,7 @@ func dexChapter(w http.ResponseWriter,r *http.Request){
  var title dexDetailResponse
  if e=dexFetch(r.Context(),"/manga/"+id,nil,&title);e!=nil||title.Result!="ok"||title.Data.ID!=id{liveFailure(w,e);return}
  if title.Data.Attributes.ContentRating!="safe"&&title.Data.Attributes.ContentRating!="suggestive"{http.NotFound(w,r);return}
- var d dexDetailResponse
+ var d dexChapterDetailResponse
  if e=dexFetch(r.Context(),"/chapter/"+ch,url.Values{"includes[]":{"scanlation_group","user"}},&d);e!=nil||d.Result!="ok"||d.Data.ID!=ch{liveFailure(w,e);return}
  belongs:=false;var groups []string
  for _,rel:=range d.Data.Relationships{if rel.Type=="manga"&&rel.ID==id{belongs=true};if rel.Type=="scanlation_group"&&rel.Attributes.Name!=""{groups=append(groups,rel.Attributes.Name)}}
@@ -48,7 +48,7 @@ func dexChapter(w http.ResponseWriter,r *http.Request){
  number:="Oneshot";if d.Data.Attributes.Chapter!=nil{number=*d.Data.Attributes.Chapter}
  v:=dexReaderView{ID:id,Title:dexText(title.Data.Attributes.Title),Number:number,Chapter:ch,Group:strings.Join(groups,", "),Language:lang,Offset:offset}
  if d.Data.Attributes.ExternalURL!=""||d.Data.Attributes.Pages==0{v.Unavailable=true;render(w,"dex_reader",v);return}
- var feed dexListResponse
+ var feed dexChapterFeedResponse
  if e=dexFetch(r.Context(),"/manga/"+id+"/feed",url.Values{"limit":{"100"},"offset":{strconv.Itoa(offset)},"translatedLanguage[]":{lang},"contentRating[]":{"safe","suggestive"},"order[chapter]":{"desc"}},&feed);e==nil&&feed.Result=="ok"{
  for i,c:=range feed.Data{if c.ID!=ch{continue};if i+1<len(feed.Data)&&sourceUUID.MatchString(feed.Data[i+1].ID){v.Prev=feed.Data[i+1].ID};if i>0&&sourceUUID.MatchString(feed.Data[i-1].ID){v.Next=feed.Data[i-1].ID};break}
  }
