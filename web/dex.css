@@ -128,3 +128,5 @@
 @media(max-width:700px){.iv-app .iv-auth-main{padding:28px 14px 44px;justify-content:flex-start}.iv-auth-card{padding:24px 20px;border-radius:16px}.iv-auth-page .site-footer{margin-top:auto}}
 
 .iv-library #iv-reading-stats{font-weight:650;color:var(--iv-text)}.iv-library #personal-bookmarks:empty:after,.iv-library #personal-history:empty:after{content:'Belum ada data pustaka provider.'}.iv-local-reading .iv-suwayomi-pages img{scroll-margin-top:65px}
+
+#iv-update-results{margin:12px 0}#iv-update-results p{padding:10px;border:1px solid var(--iv-border);border-radius:8px;margin:0}#iv-health-result,#iv-update-status{font-size:12px;color:var(--iv-muted)}
