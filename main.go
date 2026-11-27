@@ -33,6 +33,8 @@ func configuredHandler(provider string) http.Handler {
  for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre+" "+c.Author+" "+c.Artist),q) && (kind=="" || strings.EqualFold(kind,c.Type)) && (status=="" || strings.EqualFold(status,c.Status)){items=append(items,c)} }
  v:=buildHome(r,items,catalog[0]);if r.URL.Path=="/series"{render(w,"series",v)}else{render(w,"home",v)}
  }
+ mux.HandleFunc("GET /sw-cover/{id}",swCoverHandler)
+ mux.HandleFunc("GET /sw-page/{token}/{index}",swPageHandler)
  mux.HandleFunc("GET /dex-page/{token}/{index}",dexPageImageHandler)
  mux.HandleFunc("GET /dex-cover/{id}/{file}",dexCoverHandler)
  mux.HandleFunc("GET /dex.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/dex.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
@@ -82,6 +84,7 @@ func configuredHandler(provider string) http.Handler {
  mux.HandleFunc("GET /premium.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/premium.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /style.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/style.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+ if suwayomiPrivateMobile()&&!swPrivateAccess(w,r){return}
  w.Header().Set("X-Content-Type-Options","nosniff")
  if strings.HasPrefix(r.URL.Path,"/admin"){w.Header().Set("Cache-Control","no-store")}
  if r.TLS!=nil{w.Header().Set("Strict-Transport-Security","max-age=31536000")}
@@ -91,7 +94,7 @@ func configuredHandler(provider string) http.Handler {
  w.Header().Set("Content-Security-Policy","default-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  if r.Method=="GET"&&(r.URL.Path=="/"||r.URL.Path=="/series")&&provider=="mangadex"{dexList(w,r);return}
  if r.URL.Path=="/api/dex-library"||r.URL.Path=="/api/provider-health"||r.URL.Path=="/api/reading-updates"{mux.ServeHTTP(w,r);return}
- if strings.HasPrefix(r.URL.Path,"/suwayomi/")||strings.HasPrefix(r.URL.Path,"/extra/")||r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/")||strings.HasPrefix(r.URL.Path,"/dex-cover/")||strings.HasPrefix(r.URL.Path,"/dex-page/"){mux.ServeHTTP(w,r);return}
+ if strings.HasPrefix(r.URL.Path,"/sw-cover/")||strings.HasPrefix(r.URL.Path,"/sw-page/")||strings.HasPrefix(r.URL.Path,"/suwayomi/")||strings.HasPrefix(r.URL.Path,"/extra/")||r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/")||strings.HasPrefix(r.URL.Path,"/dex-cover/")||strings.HasPrefix(r.URL.Path,"/dex-page/"){mux.ServeHTTP(w,r);return}
  if strings.HasPrefix(r.URL.Path,"/admin/") && r.URL.Path!="/admin/analytics"{mux.ServeHTTP(w,r);return}
  if r.Method=="POST" && r.URL.Path=="/admin" {mux.ServeHTTP(w,r);return}
  catalogMu.RLock();defer catalogMu.RUnlock()
@@ -109,6 +112,7 @@ func main(){
  if len(os.Args)>1{if os.Args[1]!="import-package"||len(os.Args)!=3{log.Fatal("usage: go run . import-package <zip>")};if err:=importPackage(os.Args[2]);err!=nil{log.Fatal(err)};return}
  if err:=startManifestSync();err!=nil{log.Fatal(err)}
  if err:=validatePublicURL();err!=nil{log.Fatal(err)}
+ if suwayomiPrivateMobile()&&len(os.Getenv("INKVEIL_MOBILE_PASSWORD"))<16{log.Fatal("Private mobile mode requires a password of at least 16 characters")}
  if err:=startPackageInbox();err!=nil{log.Fatal(err)}
  addr:=os.Getenv("ADDR");if addr==""{addr="127.0.0.1:8080"}
  s:=&http.Server{Addr:addr,Handler:configuredHandler(os.Getenv("INKVEIL_LIVE_PROVIDER")),ReadHeaderTimeout:5*time.Second,ReadTimeout:15*time.Second,WriteTimeout:30*time.Second,IdleTimeout:60*time.Second,MaxHeaderBytes:32<<10}
