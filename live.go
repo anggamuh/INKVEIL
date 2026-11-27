@@ -15,7 +15,7 @@ import (
  "time"
 )
 
-type liveTitle struct { ID,Title,Description,Genre,Type,CoverURL,Author,Status string; Chapters []liveChapter }
+type liveTitle struct { ID,Title,Description,Genre,Type,CoverURL,Author,Status string; Chapters []liveChapter; Aliases []string; Year int }
 type liveChapter struct { ID,Number string }
 type liveCatalog struct { Items []liveTitle; Next string }
 type livePages struct { Images []string }
