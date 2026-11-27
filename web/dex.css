@@ -37,3 +37,36 @@
 .iv-suwayomi-pages{max-width:850px;margin:1rem auto;display:flex;flex-direction:column;align-items:center}.iv-suwayomi-pages img{display:block;width:100%;height:auto}
 
 .iv-suwayomi-chapters{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.iv-suwayomi-chapter .button{display:block;width:100%;text-align:left;box-sizing:border-box}
+
+/* INKVEIL editorial catalog / shared Suwayomi reading experience */
+.iv-app .iv-catalog-page{max-width:1440px;padding-inline:clamp(16px,3vw,40px)}
+.iv-catalog-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:24px 0 26px}
+.iv-catalog-intro h1{font-size:clamp(27px,3.3vw,44px);letter-spacing:-.055em;line-height:1.1;margin:8px 0;color:#f4f1ea}
+.iv-catalog-intro p{font-size:14px;margin:0;color:#a5a5ad}.iv-language-pill{flex:none;background:#24221d;border:1px solid #493c29;color:#efbd52;border-radius:99px;padding:8px 13px;font-size:12px}
+.iv-app .iv-catalog-page .iv-catalog-tools{padding:16px;border-radius:14px;background:#18181c}
+.iv-app .iv-catalog-page .dex-filter input{min-height:46px;font-size:15px}
+.iv-app .iv-catalog-page .dex-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:18px}
+.iv-app .iv-catalog-page .dex-card{background:#19191d;border:1px solid #2d2d32;border-radius:12px;overflow:hidden}
+.iv-app .iv-catalog-page .dex-card .dex-cover{border:0;border-radius:0}
+.iv-app .iv-catalog-page .dex-card-body{padding:12px;min-height:78px}
+.iv-app .iv-catalog-page .dex-card-body h3{font-size:15px;line-height:1.35;min-height:2.7em;margin:7px 0 3px}
+.iv-app .iv-catalog-page .dex-card-body small{display:block;color:#b6b1a7;font-size:11px;letter-spacing:0;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iv-app .iv-catalog-page .dex-source-label{left:8px;top:8px;padding:5px 8px;color:#f5f1e8;font-size:10px;border-radius:6px}
+.iv-app .iv-catalog-page .dex-card:hover{border-color:#b38a45;box-shadow:0 8px 24px #0005}
+.iv-app .iv-results-heading{margin-top:30px;border-bottom:1px solid #2d2d32;padding-bottom:12px}
+.iv-empty-icon{font-size:48px;color:#efbd52;line-height:1}.iv-app .iv-empty{padding:48px 18px}
+.iv-back-link{display:inline-flex;align-items:center;color:#efbd52;font-size:14px;font-weight:650;padding:9px 0}
+.iv-app .iv-suwayomi-detail .dex-detail-side .button{white-space:normal}
+.iv-app .iv-suwayomi-detail .dex-chapters{grid-template-columns:repeat(3,minmax(0,1fr))}
+.iv-app .iv-suwayomi-reader{max-width:1100px;padding-bottom:140px}.iv-suwayomi-reader-head{text-align:center;padding:15px 0 8px}
+.iv-suwayomi-reader-head .iv-back-link{display:flex;justify-content:flex-start;margin-bottom:14px}
+.iv-suwayomi-reader-head h1{font-size:clamp(25px,3vw,38px);margin:8px 0;letter-spacing:-.035em}
+.iv-suwayomi-reader-head p{margin:0;font-size:13px;color:#aaa}
+.iv-suwayomi-pages{background:#09090b;margin:24px auto;max-width:880px}
+.iv-reader-finish{padding:28px 12px;text-align:center;border:1px solid #2d2d32;background:#19191d;border-radius:12px}
+.iv-suwayomi-dock{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:40;display:flex;gap:6px;padding:7px;border:1px solid #3b3832;background:#19191df5;border-radius:14px;box-shadow:0 12px 36px #0008;max-width:calc(100vw - 20px);backdrop-filter:blur(12px)}
+.iv-suwayomi-dock .button,.iv-suwayomi-dock button{min-width:42px;text-align:center;white-space:nowrap;padding:9px 13px}
+@media(max-width:1150px){.iv-app .iv-catalog-page .dex-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}}
+@media(max-width:850px){.iv-app .iv-catalog-page .dex-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.iv-app .iv-suwayomi-detail .dex-chapters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.iv-app .iv-catalog-page{padding-inline:12px}.iv-catalog-intro{align-items:flex-start;flex-direction:column;gap:10px;padding:16px 0}.iv-catalog-intro h1{font-size:27px}.iv-catalog-intro p{font-size:12px}.iv-language-pill{font-size:10px;padding:4px 9px}.iv-app .iv-catalog-page .dex-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.iv-app .iv-catalog-page .dex-card-body{padding:8px;min-height:64px}.iv-app .iv-catalog-page .dex-card-body h3{font-size:12px}.iv-app .iv-catalog-page .dex-card-body small{font-size:9px}.iv-app .iv-catalog-page .dex-source-label{font-size:9px;padding:3px 5px;left:4px;top:4px}.iv-app .iv-catalog-page .iv-catalog-tools{padding:12px}.iv-app .iv-catalog-page .dex-filter input{font-size:13px;min-height:42px}.iv-app .iv-suwayomi-detail .dex-detail{grid-template-columns:1fr;padding:16px}.iv-app .iv-suwayomi-detail .dex-detail-side{display:grid;grid-template-columns:1fr 1fr;gap:8px}.iv-app .iv-suwayomi-detail .dex-detail-side .dex-cover{grid-column:1/-1;width:min(55%,190px);justify-self:center}.iv-app .iv-suwayomi-detail .dex-detail-side .dex-primary{grid-column:1/-1}.iv-app .iv-suwayomi-detail .dex-detail-side .button{font-size:12px}.iv-app .iv-suwayomi-detail .dex-chapters{grid-template-columns:1fr}.iv-app .iv-suwayomi-reader{padding-inline:0;padding-bottom:155px}.iv-suwayomi-reader-head,.iv-reader-finish{padding-inline:12px}.iv-suwayomi-dock{bottom:calc(72px + env(safe-area-inset-bottom))}.iv-suwayomi-pages{margin:18px 0}}
+@media(max-width:350px){.iv-app .iv-catalog-page .dex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
