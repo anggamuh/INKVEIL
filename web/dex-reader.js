@@ -1,25 +1,39 @@
 (() => {
- const pages = Array.from(document.querySelectorAll('[data-dex-page]'));
- const main=document.getElementById('dex-reading-main');
- const status=document.getElementById('dex-status');
- const failedPages=new Set();
- const refreshSource=()=>{const u=new URL(location.href);location.href=u.href;};
- document.querySelectorAll(".dex-refresh").forEach(b=>b.addEventListener("click",refreshSource));
- document.getElementById("dex-quality")?.addEventListener("change",e=>{const u=new URL(location.href);u.searchParams.set("quality",e.target.value);location.href=u.href;});
- const updateStatus=()=>{if(status)status.textContent=failedPages.size?failedPages.size+" gambar gagal. Refresh sumber atau pilih kualitas Original.":"";};
- const load=img=>{
-  if(img.dataset.started==='1')return;
-  img.dataset.started='1';
-  const error=img.parentElement.querySelector('.dex-page-error');
-  img.addEventListener('load',()=>{img.classList.add('loaded');img.classList.remove("failed");failedPages.delete(img);updateStatus();if(error)error.hidden=true;},{once:true});
-  img.addEventListener('error',()=>{img.classList.add('failed');if(error)error.hidden=false;failedPages.add(img);updateStatus();},{once:true});
-  img.src=img.dataset.dexPage;
+ const pages=Array.from(document.querySelectorAll('[data-dex-page]'));
+ const main=document.getElementById('dex-reading-main'),status=document.getElementById('dex-status');
+ const failed=new Set(),loaded=new Set(),queued=new Set(),queue=[];
+ let active=0,refreshing=null,lastRefresh=0;
+ const update=()=>{if(status)status.textContent=loaded.size+'/'+pages.length+' halaman dimuat'+(failed.size?' · '+failed.size+' gagal':'');};
+ const refresh=async()=>{
+  if(refreshing)return refreshing;
+  if(Date.now()-lastRefresh<3000)return;
+  lastRefresh=Date.now();
+  refreshing=(async()=>{const u=new URL(location.href);u.searchParams.set('manifest','1');const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('Manifest '+r.status);const m=await r.json();if(!Array.isArray(m.images)||m.images.length!==pages.length)throw Error('Page count changed');pages.forEach((img,i)=>img.dataset.dexPage=m.images[i]);})();
+  try{await refreshing;}finally{refreshing=null;}
  };
- if('IntersectionObserver' in window){
-  const observer=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){observer.unobserve(e.target);load(e.target);}},{rootMargin:'600px'});
-  pages.forEach(img=>observer.observe(img));
- }else pages.forEach(load);
- for(const img of pages){const retry=img.parentElement.querySelector('.dex-retry');if(retry)retry.addEventListener('click',()=>{img.classList.remove('failed');img.removeAttribute('src');img.dataset.started='0';img.parentElement.querySelector('.dex-page-error').hidden=true;load(img);});}
+ const report=async(url,success,cached,bytes,duration)=>{try{await fetch('https://api.mangadex.network/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,success,cached,bytes,duration}),keepalive:true});}catch{}};
+ const getImage=async(img)=>{
+  const url=img.dataset.dexPage,start=performance.now();
+  let response,blob;
+  try{response=await fetch(url,{credentials:'omit',signal:AbortSignal.timeout(20000)});if(!response.ok)throw Error('HTTP '+response.status);blob=await response.blob();if(!blob.type.startsWith('image/'))throw Error('Not an image');}
+  catch(e){if(response)await report(url,false,false,0,Math.round(performance.now()-start));throw e;}
+  await report(url,true,(response.headers.get('X-Cache')||'').startsWith('HIT'),blob.size,Math.round(performance.now()-start));
+  const objectURL=URL.createObjectURL(blob);
+  try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=objectURL;});}finally{URL.revokeObjectURL(objectURL);img.onload=null;img.onerror=null;}
+ };
+ const run=async(img)=>{
+  const error=img.parentElement.querySelector('.dex-page-error');
+  try{try{await getImage(img);}catch{await refresh();await new Promise(r=>setTimeout(r,700));await getImage(img);}
+   img.classList.add('loaded');img.classList.remove('failed');loaded.add(img);failed.delete(img);if(error)error.hidden=true;
+  }catch{img.classList.add('failed');failed.add(img);if(error)error.hidden=false;}
+  finally{queued.delete(img);active--;update();pump();}
+ };
+ const pump=()=>{while(active<3&&queue.length){const img=queue.shift();active++;run(img);}};
+ const enqueue=img=>{if(loaded.has(img)||queued.has(img))return;queued.add(img);queue.push(img);pump();};
+ if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){observer.unobserve(e.target);enqueue(e.target);}},{rootMargin:'600px'});pages.forEach(img=>observer.observe(img));}else pages.forEach(enqueue);
+ for(const img of pages){const error=img.parentElement.querySelector('.dex-page-error');error?.querySelector('.dex-retry')?.addEventListener('click',()=>enqueue(img));error?.querySelector('.dex-refresh')?.addEventListener('click',async()=>{try{await refresh();failed.forEach(enqueue);}catch{update();}});}
+ document.getElementById('dex-quality')?.addEventListener('change',e=>{const u=new URL(location.href);u.searchParams.set('quality',e.target.value);location.href=u.href;});
+ update();
  const width=document.getElementById('dex-width');
  if(width&&main){try{const saved=localStorage.getItem('inkveil-dex-width');if(['normal','wide','compact'].includes(saved))width.value=saved;}catch{}main.dataset.width=width.value;width.addEventListener('change',()=>{main.dataset.width=width.value;try{localStorage.setItem('inkveil-dex-width',width.value);}catch{}});}
  document.getElementById('dex-top')?.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
