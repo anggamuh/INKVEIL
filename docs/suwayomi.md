@@ -10,8 +10,8 @@ $env:INKVEIL_SUWAYOMI_READER="yes"
 $env:INKVEIL_UNIFIED_INDEX="yes"
 $env:INKVEIL_LIVE_PROVIDER="mangadex"
 go test ./...
-go run . refresh-catalog
-go run .
+go run ./cmd/inkveil refresh-catalog
+go run ./cmd/inkveil
 ```
 
 Alternatively set INKVEIL_SUWAYOMI_MANGA_IDS to approved IDs and omit library mode. Import up to 1000 library records, only Indonesian sources. Existing MySQL catalog, conservative deduplication, and MangaDex fallback remain. Browser must have access to the same local Suwayomi server. Reader requires stored chapter metadata and returns an error if page URLs deviate from the expected local route. No automatic remote catalog enumeration.
