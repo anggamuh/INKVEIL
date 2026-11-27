@@ -123,4 +123,4 @@ func dexDetail(w http.ResponseWriter,r *http.Request){
  dexPage(&v,offset,100,feed.Total);render(w,"dex_detail",v)
 }
 
-func dexCoverPolicy(w http.ResponseWriter){w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")}
+func dexCoverPolicy(w http.ResponseWriter){if suwayomiEnabled(){suwayomiImagePolicy(w);return};w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")}
