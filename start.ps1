@@ -19,7 +19,7 @@ if ($AuthorizedSearchSources) {
 if ($env:INKVEIL_MYSQL_DSN) { $env:INKVEIL_UNIFIED_INDEX = 'yes' }
 if ($Refresh) {
  if (-not $env:INKVEIL_MYSQL_DSN) { throw 'Set INKVEIL_MYSQL_DSN before refreshing the MySQL index.' }
- go run . refresh-catalog
+ go run ./cmd/inkveil refresh-catalog
  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 if ($PrivateMobile) {
@@ -30,5 +30,5 @@ if ($PrivateMobile) {
   try { $env:INKVEIL_MOBILE_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
  }
 }
-go run .
+go run ./cmd/inkveil
 exit $LASTEXITCODE
