@@ -38,6 +38,7 @@ func configuredHandler(provider string) http.Handler {
  mux.HandleFunc("GET /dex.css",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/dex.css");w.Header().Set("Content-Type","text/css; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /personal.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/personal.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /dex-reader.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/dex-reader.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
+ mux.HandleFunc("GET /suwayomi/{id}",suwayomiDetailHandler)
  mux.HandleFunc("GET /extra/{id}",extraDetailHandler)
  mux.HandleFunc("GET /extra/{id}/{chapter}",extraReaderHandler)
  mux.HandleFunc("GET /live",liveListHandler)
