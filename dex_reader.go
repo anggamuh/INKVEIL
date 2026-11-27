@@ -2,6 +2,7 @@ package main
 
 import (
  "fmt"
+ "encoding/json"
  "net/http"
  "net/url"
  "os"
@@ -57,7 +58,8 @@ func dexChapter(w http.ResponseWriter,r *http.Request){
  var h dexHomeResponse
  if e=dexFetch(r.Context(),"/at-home/server/"+ch,url.Values{"forcePort443":{"true"}},&h);e!=nil{liveFailure(w,e);return}
  images,origin,e:=dexImagesQuality(h,quality);if e!=nil{liveFailure(w,e);return};v.Images=images
+ if r.URL.Query().Get("manifest")=="1"{w.Header().Set("Cache-Control","no-store");w.Header().Set("Content-Type","application/json");json.NewEncoder(w).Encode(struct{Images []string `json:"images"`}{images});return}
  w.Header().Set("Cache-Control","no-store")
- w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' "+origin+"; connect-src 'self' "+origin+" https://api.mangadex.network; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+ w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' blob: "+origin+" https://*.mangadex.network https://uploads.mangadex.org; connect-src 'self' "+origin+" https://*.mangadex.network https://uploads.mangadex.org; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  render(w,"dex_reader",v)
 }
