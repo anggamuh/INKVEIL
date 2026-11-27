@@ -55,13 +55,22 @@ func currentAccount(r *http.Request)(string,error){
  if errors.Is(e,sql.ErrNoRows){return "",nil};return name,e
 }
 func accountHeaders(w http.ResponseWriter){w.Header().Set("Cache-Control","no-store");w.Header().Set("X-Robots-Tag","noindex, nofollow")}
+type accountPageView struct {Username,CSRF,Error,InputName string; Register bool}
+func accountFormError(w http.ResponseWriter,r *http.Request,status int,message string){
+ token,e:=randomToken();if e!=nil{http.Error(w,"Token error",500);return}
+ accountCookie(w,r,"inkveil_account_csrf",token,1800)
+ w.Header().Set("Content-Type","text/html; charset=utf-8")
+ w.WriteHeader(status)
+ name:=strings.TrimSpace(r.PostForm.Get("username"));if len(name)>32{name=""}
+ render(w,"account",accountPageView{CSRF:token,Error:message,InputName:name,Register:r.PostForm.Get("action")=="register"})
+}
 func accountGet(w http.ResponseWriter,r *http.Request){
  accountHeaders(w)
  if catalogDB==nil{http.Error(w,"Akun membutuhkan MySQL",503);return}
  name,e:=currentAccount(r);if e!=nil{http.Error(w,"Account unavailable",503);return}
  token,e:=randomToken();if e!=nil{http.Error(w,"Token error",500);return}
  accountCookie(w,r,"inkveil_account_csrf",token,1800)
- render(w,"account",struct{Username,CSRF string}{name,token})
+ render(w,"account",accountPageView{Username:name,CSRF:token,Register:r.URL.Query().Get("mode")=="register"})
 }
 func accountPost(w http.ResponseWriter,r *http.Request){
  accountHeaders(w)
@@ -77,20 +86,20 @@ func accountPost(w http.ResponseWriter,r *http.Request){
  }
  if action!="login"&&action!="register"{http.Error(w,"Unknown action",400);return}
  name:=strings.ToLower(strings.TrimSpace(r.PostForm.Get("username")));pass:=r.PostForm.Get("password")
- if !accountName.MatchString(name)||len(pass)<12||len(pass)>72{http.Error(w,"Username 3–32 karakter; password 12–72 byte",400);return}
- if !allowAttempt(name){http.Error(w,"Coba lagi dalam satu menit",429);return}
- select{case authSlots<-struct{}{}:defer func(){<-authSlots}();default:http.Error(w,"Server busy",429);return}
+ if !accountName.MatchString(name)||len(pass)<12||len(pass)>72{accountFormError(w,r,400,"Username harus 3–32 karakter dan password 12–72 byte.");return}
+ if !allowAttempt(name){accountFormError(w,r,429,"Terlalu banyak percobaan. Coba lagi dalam satu menit.");return}
+ select{case authSlots<-struct{}{}:defer func(){<-authSlots}();default:accountFormError(w,r,429,"Server sedang sibuk. Coba lagi.");return}
  var id int64
  if action=="register"{
   hash,e:=bcrypt.GenerateFromPassword([]byte(pass),12);if e!=nil{http.Error(w,"Registration failed",500);return}
   res,e:=catalogDB.ExecContext(r.Context(),"INSERT INTO inkveil_users (username,password_hash) VALUES (?,?)",name,hash)
-  if e!=nil{http.Error(w,"Registration failed; choose another username",400);return}
+  if e!=nil{accountFormError(w,r,400,"Pendaftaran gagal. Coba username lain.");return}
   id,e=res.LastInsertId();if e!=nil{http.Error(w,"Registration failed",500);return}
  }else{
   var hash []byte
   e:=catalogDB.QueryRowContext(r.Context(),"SELECT id,password_hash FROM inkveil_users WHERE username=?",name).Scan(&id,&hash)
-  if e!=nil{_,_=bcrypt.GenerateFromPassword([]byte(pass),12);http.Error(w,"Username atau password salah",401);return}
-  if bcrypt.CompareHashAndPassword(hash,[]byte(pass))!=nil{http.Error(w,"Username atau password salah",401);return}
+  if e!=nil{_,_=bcrypt.GenerateFromPassword([]byte(pass),12);accountFormError(w,r,401,"Username atau password salah.");return}
+  if bcrypt.CompareHashAndPassword(hash,[]byte(pass))!=nil{accountFormError(w,r,401,"Username atau password salah.");return}
  }
  token,e:=randomToken();if e!=nil{http.Error(w,"Session error",500);return}
  tx,e:=catalogDB.BeginTx(r.Context(),nil);if e!=nil{http.Error(w,"Session error",503);return};defer tx.Rollback()
