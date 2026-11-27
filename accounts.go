@@ -38,6 +38,7 @@ func initAccounts()error{
  `CREATE TABLE IF NOT EXISTS inkveil_sessions (token_hash BINARY(32) PRIMARY KEY, user_id BIGINT UNSIGNED NOT NULL, expires_at BIGINT NOT NULL, INDEX(expires_at), FOREIGN KEY(user_id) REFERENCES inkveil_users(id) ON DELETE CASCADE) ENGINE=InnoDB`,
  `CREATE TABLE IF NOT EXISTS inkveil_bookmarks (user_id BIGINT UNSIGNED NOT NULL, slug VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, PRIMARY KEY(user_id,slug), FOREIGN KEY(user_id) REFERENCES inkveil_users(id) ON DELETE CASCADE) ENGINE=InnoDB`,
  `CREATE TABLE IF NOT EXISTS inkveil_history (user_id BIGINT UNSIGNED NOT NULL, slug VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, chapter VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL, read_at BIGINT NOT NULL, PRIMARY KEY(user_id,slug), INDEX(user_id,read_at), FOREIGN KEY(user_id) REFERENCES inkveil_users(id) ON DELETE CASCADE) ENGINE=InnoDB`,
+ `CREATE TABLE IF NOT EXISTS inkveil_dex_library (user_id BIGINT UNSIGNED PRIMARY KEY, payload MEDIUMBLOB NOT NULL, revision BIGINT UNSIGNED NOT NULL DEFAULT 0, FOREIGN KEY(user_id) REFERENCES inkveil_users(id) ON DELETE CASCADE) ENGINE=InnoDB`,
  }{if _,err:=catalogDB.ExecContext(ctx,q);err!=nil{return err}}
  return nil
 }
