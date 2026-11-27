@@ -35,3 +35,5 @@
 @media(max-width:800px){.iv-app .dex-shell{padding-bottom:96px}.iv-app .dex-grid{gap:8px}.iv-app .dex-card-body h3{font-size:12px}.iv-app .dex-card-body{padding:6px 2px}.iv-app .dex-filter>button{grid-column:2;grid-row:1}.iv-filter-options{grid-template-columns:repeat(2,minmax(0,1fr))}.iv-app .dex-chapters{grid-template-columns:1fr}.iv-app .personal-rail .dex-card{flex-basis:112px}.iv-app .dex-series-detail .dex-detail{margin-top:12px}.iv-app .dex-section h2:before{height:15px}.iv-app .dex-section{margin-top:18px}.iv-app .dex-filter input{min-width:0}.iv-app .iv-filter-heading h2{font-size:14px}.iv-app .iv-catalog-tools{scroll-margin-top:75px}}
 
 .iv-suwayomi-pages{max-width:850px;margin:1rem auto;display:flex;flex-direction:column;align-items:center}.iv-suwayomi-pages img{display:block;width:100%;height:auto}
+
+.iv-suwayomi-chapters{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}.iv-suwayomi-chapter .button{display:block;width:100%;text-align:left;box-sizing:border-box}
