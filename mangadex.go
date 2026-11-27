@@ -48,7 +48,7 @@ type dexDetailResponse struct{Result string;Data dexEntity}
 type dexTagOption struct{ID,Name string}
 type dexTagResponse struct{Result string;Data []struct{ID string;Attributes struct{Name map[string]string;Group string}}}
 type dexChapterRow struct{ID,Number,Language,Group string}
-type dexView struct{Sort,Tag string;TagOptions []dexTagOption;Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError,IndexedSearch bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
+type dexView struct{Sort,Tag string;TagOptions []dexTagOption;Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError,IndexedSearch,SuwayomiError bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
 var dexRateMu sync.Mutex
 var dexNext time.Time
 func dexFetch(ctx context.Context,path string,q url.Values,out any)error{
@@ -69,7 +69,7 @@ func dexTitle(d dexEntity)liveTitle{
  if d.Attributes.Year!=nil{t.Year=*d.Attributes.Year};for _,names:=range d.Attributes.AltTitles{for _,name:=range names{if strings.TrimSpace(name)!=""{t.Aliases=append(t.Aliases,name)}}};for _,name:=range d.Attributes.Title{t.Aliases=append(t.Aliases,name)};t.Status=d.Attributes.Status; switch d.Attributes.OriginalLanguage{case "ko":t.Type="Manhwa";case "zh","zh-hk":t.Type="Manhua"};for _,rel:=range d.Relationships{if rel.Type=="cover_art"&&sourceUUID.MatchString(d.ID)&&dexFile.MatchString(rel.Attributes.FileName){t.CoverURL="/dex-cover/"+d.ID+"/"+rel.Attributes.FileName+".256.jpg"};if rel.Type=="author"&&rel.Attributes.Name!=""{t.Author=rel.Attributes.Name}};var tags []string;for _,tag:=range d.Attributes.Tags{if n:=dexText(tag.Attributes.Name);n!=""{tags=append(tags,n)}};t.Genre=strings.Join(tags,", ");return t
 }
 func dexOffset(r *http.Request)(int,error){s:=r.URL.Query().Get("offset");if s==""{return 0,nil};n,e:=strconv.Atoi(s);if e!=nil||n<0||n>9900{return 0,fmt.Errorf("invalid offset")};return n,nil}
-func dexLanguage(r *http.Request)string{if r.URL.Query().Get("lang")=="en"{return "en"};return "id"}
+func dexLanguage(r *http.Request)string{if os.Getenv("INKVEIL_ID_ONLY")!="yes"&&r.URL.Query().Get("lang")=="en"{return "en"};return "id"}
 func dexPage(v *dexView,offset,limit,total int){v.Offset=offset;v.HasNext=offset+limit<total&&offset+limit<=9900;v.Next=offset+limit;v.HasPrev=offset>0;v.Prev=offset-limit;if v.Prev<0{v.Prev=0}}
 const discoveryPageSize=24
 func discoveryWindow(localCount,offset int)(start,end,remoteOffset,remoteLimit int){
@@ -87,6 +87,15 @@ func dexList(w http.ResponseWriter,r *http.Request){
  var tags dexTagResponse
  if source!="local"&&dexFetch(r.Context(),"/manga/tag",nil,&tags)==nil&&tags.Result=="ok"{for _,t:=range tags.Data{if t.Attributes.Group=="genre"&&sourceUUID.MatchString(t.ID){v.TagOptions=append(v.TagOptions,dexTagOption{t.ID,dexText(t.Attributes.Name)})}}}
  if tag!=""&&source==""{source="mangadex";v.Source=source}
+ if suwayomiEnabled()&&lang=="id"&&source==""&&tag==""&&sortMode=="latest"{
+ cards,err:=suwayomiDiscovery(r.Context(),q,kind);v.SuwayomiError=err!=nil
+ var indexed []discoveryCard;if os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes"{indexed,_=unifiedCatalogSnapshot(lang,q,kind)}
+ clean:=[]discoveryCard{};for _,c:=range indexed{if c.Source!="Suwayomi"{clean=append(clean,c)}}
+ catalogMu.RLock();local:=localDiscovery(catalog,q,kind);catalogMu.RUnlock()
+ params.Set("limit","100");params.Set("offset","0");var live dexListResponse;fresh:=[]discoveryCard{}
+ if e:=dexFetch(r.Context(),"/manga",params,&live);e!=nil||live.Result!="ok"||len(live.Data)>100{v.LiveError=true}else{for _,item:=range live.Data{t:=dexTitle(item);if sourceUUID.MatchString(t.ID)&&t.Title!=""{fresh=append(fresh,remoteDiscovery(t,lang))}}}
+ merged:=unifiedMerge(local, fresh,clean,cards);v.Cards=unifiedPage(merged,offset);dexPage(&v,offset,discoveryPageSize,len(merged));dexCoverPolicy(w);render(w,"dex_list",v);return
+ }
  if os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes"&&source==""&&tag==""&&sortMode=="latest"{if cards,ok:=unifiedCatalogSnapshot(lang,q,kind);ok{if strings.TrimSpace(q)!=""{v.IndexedSearch=true;params.Set("limit","100");params.Set("offset","0");var live dexListResponse;if e:=dexFetch(r.Context(),"/manga",params,&live);e!=nil||live.Result!="ok"||len(live.Data)>100{v.LiveError=true}else{fresh:=[]discoveryCard{};for _,item:=range live.Data{t:=dexTitle(item);if sourceUUID.MatchString(t.ID)&&t.Title!=""{fresh=append(fresh,remoteDiscovery(t,lang))}};cards=mergeIndexedSearch(cards,fresh)}};v.Cards=unifiedPage(cards,offset);dexPage(&v,offset,discoveryPageSize,len(cards));dexCoverPolicy(w);render(w,"dex_list",v);return}}
  var local []discoveryCard
  if source!="mangadex"{catalogMu.RLock();local=localDiscovery(catalog,q,kind);catalogMu.RUnlock()}

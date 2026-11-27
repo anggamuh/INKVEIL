@@ -90,8 +90,10 @@ func suwayomiCover(m suwayomiManga) string {
  if m.ThumbnailURL==path || m.ThumbnailURL==suwayomiOrigin+path{return suwayomiOrigin+path}
  return ""
 }
+func suwayomiDiscoveryKey() string{return os.Getenv("INKVEIL_SUWAYOMI_MANGA_IDS")+"|"+os.Getenv("INKVEIL_SUWAYOMI_LIBRARY")}
 func suwayomiCard(m suwayomiManga) discoveryCard {
- return discoveryCard{Title:m.Title,Author:m.Author,Genre:strings.Join(m.Genre,", "),Status:m.Status,CoverURL:suwayomiCover(m),Href:fmt.Sprintf("/suwayomi/%d",m.ID),Source:"Suwayomi"}
+ kind:="";for _,g:=range m.Genre{switch strings.ToLower(strings.TrimSpace(g)){case "manga":kind="Manga";case "manhwa":kind="Manhwa";case "manhua":kind="Manhua"}}
+ return discoveryCard{Title:m.Title,Author:m.Author,Type:kind,Genre:strings.Join(m.Genre,", "),Status:m.Status,CoverURL:suwayomiCover(m),Href:fmt.Sprintf("/suwayomi/%d",m.ID),Source:"Suwayomi"}
 }
 func suwayomiLibrary(ctx context.Context,sources map[string]string)([]discoveryCard,error){
  var out []discoveryCard
@@ -126,6 +128,7 @@ func suwayomiDetailHandler(w http.ResponseWriter,r *http.Request){
  sources,e:=suwayomiSources(r.Context());if e!=nil{http.Error(w,"Suwayomi unavailable",502);return}
  m,e:=suwayomiTitle(r.Context(),id,sources,true);if e!=nil{http.Error(w,"Suwayomi title unavailable",502);return}
  if !suwayomiAllowed(m){http.NotFound(w,r);return}
+ sort.SliceStable(m.Chapters.Nodes,func(i,j int)bool{return m.Chapters.Nodes[i].ChapterNumber>m.Chapters.Nodes[j].ChapterNumber})
  suwayomiImagePolicy(w)
  w.Header().Set("Cache-Control","no-store")
  render(w,"suwayomi_detail",struct{Manga suwayomiManga;Source,URL,Cover string;Reader bool}{m,sources[m.SourceID],fmt.Sprintf("%s/manga/%d",suwayomiOrigin,id),suwayomiCover(m),suwayomiReaderEnabled()})
