@@ -34,7 +34,12 @@ func unifiedMerge(groups ...[]discoveryCard)[]discoveryCard{
  for _,g:=range groups{for _,c:=range g{
  if links[c.Href]{continue};match:=-1
  for _,k:=range unifiedKeys(c){for _,i:=range keys[k]{if unifiedSame(out[i],c){match=i;break}};if match>=0{break}}
- if match>=0{links[c.Href]=true;continue}
+ if match>=0{links[c.Href]=true
+ // Preserve searchable aliases from the losing record without changing the selected provider.
+ out[match].Aliases=append(append([]string(nil),out[match].Aliases...),c.Title)
+ out[match].Aliases=append(out[match].Aliases,c.Aliases...)
+ for _,k:=range unifiedKeys(out[match]){found:=false;for _,i:=range keys[k]{if i==match{found=true;break}};if !found{keys[k]=append(keys[k],match)}}
+ continue}
  i:=len(out);out=append(out,c);links[c.Href]=true;for _,k:=range unifiedKeys(c){keys[k]=append(keys[k],i)}
  }};return out
 }
@@ -64,7 +69,7 @@ func refreshUnifiedCatalog()error{
  ctx,cancel:=context.WithTimeout(context.Background(),20*time.Minute);defer cancel()
  if _,e:=catalogDB.ExecContext(ctx,"CREATE TABLE IF NOT EXISTS inkveil_unified_catalog (lang VARCHAR(2) PRIMARY KEY, payload MEDIUMBLOB NOT NULL, updated_at BIGINT NOT NULL) ENGINE=InnoDB");e!=nil{return e}
  snapshots:=map[string][]byte{}
- for _,lang:=range []string{"id","en"}{dex,e:=unifiedRemote(ctx,lang);if e!=nil{return e};extra,e:=unifiedExtra(ctx,lang);if e!=nil{return e};scraped,e:=scrapeCatalog(ctx,lang);if e!=nil{return e};b,e:=json.Marshal(unifiedMerge(dex,extra,scraped));if e!=nil{return e};if len(b)>12<<20{return fmt.Errorf("catalog snapshot too large")};snapshots[lang]=b;log.Printf("Unified catalog %s: %d MangaDex, %d supplemental, %d linked",lang,len(dex),len(extra),len(scraped))}
+ for _,lang:=range []string{"id","en"}{dex,e:=unifiedRemote(ctx,lang);if e!=nil{return e};extra,e:=unifiedExtra(ctx,lang);if e!=nil{return fmt.Errorf("supplemental refresh %s: %w; previous snapshot unchanged",lang,e)};scraped,e:=scrapeCatalog(ctx,lang);if e!=nil{log.Printf("Linked refresh %s failed: %v; publishing primary catalog without linked entries",lang,e);scraped=nil};b,e:=json.Marshal(unifiedMerge(dex,extra,scraped));if e!=nil{return e};if len(b)>12<<20{return fmt.Errorf("catalog snapshot too large")};snapshots[lang]=b;log.Printf("Unified catalog %s: %d MangaDex, %d supplemental, %d linked",lang,len(dex),len(extra),len(scraped))}
  tx,e:=catalogDB.BeginTx(ctx,nil);if e!=nil{return e};defer tx.Rollback()
  for _,lang:=range []string{"id","en"}{if _,e=tx.ExecContext(ctx,"INSERT INTO inkveil_unified_catalog(lang,payload,updated_at) VALUES (?,?,?) ON DUPLICATE KEY UPDATE payload=?,updated_at=?",lang,snapshots[lang],time.Now().Unix(),snapshots[lang],time.Now().Unix());e!=nil{return e}};return tx.Commit()
 }
@@ -87,4 +92,10 @@ func extraReaderHandler(w http.ResponseWriter,r *http.Request){
  for _,raw:=range p.Images{o,e:=liveImageOrigin(raw);if e!=nil||o!=origin{http.Error(w,"Invalid image origin",502);return}}
  w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' "+origin+"; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  v:=struct{Title liveTitle;Chapter liveChapter;Images []string;Prev,Next string}{Title:t,Chapter:t.Chapters[idx],Images:p.Images};if idx>0{v.Prev=t.Chapters[idx-1].ID};if idx+1<len(t.Chapters){v.Next=t.Chapters[idx+1].ID};render(w,"extra_reader",v)
+}
+
+func mergeIndexedSearch(indexed,fresh []discoveryCard)[]discoveryCard{
+ local,remote,extra:=[]discoveryCard{},[]discoveryCard{},[]discoveryCard{}
+ for _,c:=range indexed{switch c.Source{case "Original Project":local=append(local,c);case "MangaDex":remote=append(remote,c);default:extra=append(extra,c)}}
+ return unifiedMerge(local,fresh,remote,extra)
 }
