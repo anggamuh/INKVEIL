@@ -43,8 +43,10 @@ type dexChapterFeedResponse struct{Result string;Data []dexChapterEntity;Total,O
 type dexChapterDetailResponse struct{Result string;Data dexChapterEntity}
 type dexListResponse struct{Result string;Data []dexEntity;Total,Offset,Limit int}
 type dexDetailResponse struct{Result string;Data dexEntity}
+type dexTagOption struct{ID,Name string}
+type dexTagResponse struct{Result string;Data []struct{ID string;Attributes struct{Name map[string]string;Group string}}}
 type dexChapterRow struct{ID,Number,Language,Group string}
-type dexView struct{Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
+type dexView struct{Sort,Tag string;TagOptions []dexTagOption;Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
 var dexRateMu sync.Mutex
 var dexNext time.Time
 func dexFetch(ctx context.Context,path string,q url.Values,out any)error{
@@ -77,7 +79,12 @@ func dexList(w http.ResponseWriter,r *http.Request){
  var d dexListResponse
  params:=url.Values{"limit":{"24"},"offset":{strconv.Itoa(offset)},"availableTranslatedLanguage[]":{lang},"contentRating[]":{"safe","suggestive"},"order[latestUploadedChapter]":{"desc"},"includes[]":{"cover_art","author"}};if strings.TrimSpace(q)!=""{params.Set("title",q)}
  kind:=r.URL.Query().Get("kind");switch kind{case "Manga":params["originalLanguage[]"]=[]string{"ja"};case "Manhwa":params["originalLanguage[]"]=[]string{"ko"};case "Manhua":params["originalLanguage[]"]=[]string{"zh","zh-hk"};default:kind=""}
- v:=dexView{Query:q,Language:lang,Kind:kind,Source:source}
+ sortMode:=r.URL.Query().Get("sort");if sortMode!="popular"{sortMode="latest"};if sortMode=="popular"{params.Del("order[latestUploadedChapter]");params.Set("order[followedCount]","desc")}
+ tag:=r.URL.Query().Get("tag");if !sourceUUID.MatchString(tag){tag=""};if tag!=""{params.Set("includedTags[]",tag)}
+ v:=dexView{Query:q,Language:lang,Kind:kind,Source:source,Sort:sortMode,Tag:tag}
+ var tags dexTagResponse
+ if source!="local"&&dexFetch(r.Context(),"/manga/tag",nil,&tags)==nil&&tags.Result=="ok"{for _,t:=range tags.Data{if t.Attributes.Group=="genre"&&sourceUUID.MatchString(t.ID){v.TagOptions=append(v.TagOptions,dexTagOption{t.ID,dexText(t.Attributes.Name)})}}}
+ if tag!=""&&source==""{source="mangadex";v.Source=source}
  var local []discoveryCard
  if source!="mangadex"{catalogMu.RLock();local=localDiscovery(catalog,q,kind);catalogMu.RUnlock()}
  v.LocalCount=len(local)

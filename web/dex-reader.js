@@ -21,7 +21,7 @@
  const run=async(img)=>{
   const error=img.parentElement.querySelector('.dex-page-error');
   try{try{await getImage(img);}catch(e){if(e.status===403||e.status===429)throw e;await refresh();await new Promise(r=>setTimeout(r,700));await getImage(img);}
-   img.classList.add('loaded');img.classList.remove('failed');loaded.add(img);failed.delete(img);if(error)error.hidden=true;
+   img.classList.add('loaded');img.classList.remove('failed');loaded.add(img);failed.delete(img);window.dispatchEvent(new CustomEvent('inkveil-page-loaded',{detail:{index:pages.indexOf(img),total:pages.length}}));if(error)error.hidden=true;
   }catch(e){console.warn('INKVEIL page load:',e);img.classList.add('failed');failed.add(img);if(error)error.hidden=false;}
   finally{queued.delete(img);active--;update();pump();}
  };
@@ -29,7 +29,7 @@
  const enqueue=img=>{if(loaded.has(img)||queued.has(img))return;queued.add(img);queue.push(img);pump();};
  if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){observer.unobserve(e.target);enqueue(e.target);}},{rootMargin:'600px'});pages.forEach(img=>observer.observe(img));}else pages.forEach(enqueue);
  for(const img of pages){const error=img.parentElement.querySelector('.dex-page-error');error?.querySelector('.dex-retry')?.addEventListener('click',()=>enqueue(img));error?.querySelector('.dex-refresh')?.addEventListener('click',async()=>{try{await refresh();failed.forEach(enqueue);}catch{update();}});}
- document.getElementById('dex-quality')?.addEventListener('change',e=>{const u=new URL(location.href);u.searchParams.set('quality',e.target.value);location.href=u.href;});
+ document.getElementById('dex-quality')?.addEventListener('change',e=>{try{localStorage.setItem('inkveil-quality',e.target.value);}catch{}const u=new URL(location.href);u.searchParams.set('quality',e.target.value);location.href=u.href;});
  update();
  const width=document.getElementById('dex-width');
  if(width&&main){try{const saved=localStorage.getItem('inkveil-dex-width');if(['normal','wide','compact'].includes(saved))width.value=saved;}catch{}main.dataset.width=width.value;width.addEventListener('change',()=>{main.dataset.width=width.value;try{localStorage.setItem('inkveil-dex-width',width.value);}catch{}});}
