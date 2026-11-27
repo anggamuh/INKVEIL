@@ -5,3 +5,5 @@
 (()=>{const main=document.querySelector('[data-iv-reader-main]');if(!main)return;document.querySelector('[data-iv-reader-bottom]')?.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}));const width=document.querySelector('[data-iv-reader-width]');width?.addEventListener('change',()=>{if(['normal','wide','compact'].includes(width.value))main.dataset.width=width.value});})();
 
 (()=>{const b=document.getElementById("iv-health-check"),out=document.getElementById("iv-health-result");if(b&&out)b.addEventListener("click",async()=>{b.disabled=true;out.textContent="Memeriksa...";try{const r=await fetch("/api/provider-health",{cache:"no-store"});if(!r.ok)throw Error();const d=await r.json();out.textContent="Suwayomi: "+d.suwayomi+" · MangaDex: "+d.mangadex+" · MySQL: "+d.mysql;}catch{out.textContent="Pemeriksaan gagal. Coba lagi."}finally{b.disabled=false;}});})();
+
+if(location.pathname.startsWith("/anime"))document.querySelectorAll('a[href="/anime"]').forEach(a=>a.setAttribute("aria-current","page"));
