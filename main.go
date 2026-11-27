@@ -76,7 +76,7 @@ func configuredHandler(provider string) http.Handler {
  w.Header().Set("Permissions-Policy","camera=(), microphone=(), geolocation=()")
  w.Header().Set("X-Frame-Options","DENY")
  w.Header().Set("Content-Security-Policy","default-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
- if r.Method=="GET"&&r.URL.Path=="/"&&provider=="mangadex"{dexList(w,r);return}
+ if r.Method=="GET"&&(r.URL.Path=="/"||r.URL.Path=="/series")&&provider=="mangadex"{dexList(w,r);return}
  if r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/")||strings.HasPrefix(r.URL.Path,"/dex-cover/"){mux.ServeHTTP(w,r);return}
  if strings.HasPrefix(r.URL.Path,"/admin/") && r.URL.Path!="/admin/analytics"{mux.ServeHTTP(w,r);return}
  if r.Method=="POST" && r.URL.Path=="/admin" {mux.ServeHTTP(w,r);return}
