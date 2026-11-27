@@ -66,7 +66,7 @@ func configuredHandler(provider string) http.Handler {
  mux.HandleFunc("POST /account",accountPost)
  mux.HandleFunc("GET /api/dex-library",dexLibraryAPI)
  mux.HandleFunc("POST /api/dex-library",dexLibraryAPI)
- mux.HandleFunc("GET /settings",func(w http.ResponseWriter,r *http.Request){accountHeaders(w);render(w,"personal_settings",struct{Provider string;Reader,Database bool}{provider,os.Getenv("INKVEIL_DEX_READER")=="yes",catalogDB!=nil})})
+ mux.HandleFunc("GET /settings",func(w http.ResponseWriter,r *http.Request){accountHeaders(w);render(w,"personal_settings",struct{Provider string;Reader,Database,Indexed bool;Limit int;Catalog []catalogStatusRow}{provider,os.Getenv("INKVEIL_DEX_READER")=="yes",catalogDB!=nil,os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes",unifiedDexLimit(),catalogStatusRows()})})
  mux.HandleFunc("GET /api/library",libraryAPI)
  mux.HandleFunc("POST /api/library",libraryAPI)
  mux.HandleFunc("GET /ranking",rankingHandler)
