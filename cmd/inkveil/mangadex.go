@@ -48,7 +48,7 @@ type dexDetailResponse struct{Result string;Data dexEntity}
 type dexTagOption struct{ID,Name string}
 type dexTagResponse struct{Result string;Data []struct{ID string;Attributes struct{Name map[string]string;Group string}}}
 type dexChapterRow struct{ID,Number,Language,Group string}
-type dexView struct{Sort,Tag string;TagOptions []dexTagOption;Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError,IndexedSearch,SuwayomiError,ReleaseFeed bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
+type dexView struct{SWOptions []swSourceOption;Sort,Tag string;TagOptions []dexTagOption;Genres []string;Artist string;ChapterTotal int;Year int;StartChapter string;Cards []discoveryCard;Source string;LiveError,ChapterError,IndexedSearch,SuwayomiError,ReleaseFeed bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
 var dexRateMu sync.Mutex
 var dexNext time.Time
 func dexFetch(ctx context.Context,path string,q url.Values,out any)error{
@@ -77,13 +77,18 @@ func discoveryWindow(localCount,offset int)(start,end,remoteOffset,remoteLimit i
 }
 func dexList(w http.ResponseWriter,r *http.Request){
  offset,e:=dexOffset(r);q:=r.URL.Query().Get("q");lang:=dexLanguage(r);if e!=nil||len(q)>200{http.Error(w,"Invalid query",400);return}
- source:=r.URL.Query().Get("source");if source!="local"&&source!="mangadex"{source=""}
+ source:=r.URL.Query().Get("source");if source!="local"&&source!="mangadex"&&!strings.HasPrefix(source,"sw:"){source=""}
  var d dexListResponse
  params:=url.Values{"limit":{"24"},"offset":{strconv.Itoa(offset)},"availableTranslatedLanguage[]":{lang},"contentRating[]":{"safe","suggestive"},"order[latestUploadedChapter]":{"desc"},"includes[]":{"cover_art","author"}};if strings.TrimSpace(q)!=""{params.Set("title",q)}
  kind:=r.URL.Query().Get("kind");switch kind{case "Manga":params["originalLanguage[]"]=[]string{"ja"};case "Manhwa":params["originalLanguage[]"]=[]string{"ko"};case "Manhua":params["originalLanguage[]"]=[]string{"zh","zh-hk"};default:kind=""}
  sortMode:=r.URL.Query().Get("sort");if sortMode!="popular"{sortMode="latest"};if sortMode=="popular"{params.Del("order[latestUploadedChapter]");params.Set("order[followedCount]","desc")}
  tag:=r.URL.Query().Get("tag");if !sourceUUID.MatchString(tag){tag=""};if tag!=""{params.Set("includedTags[]",tag)}
  v:=dexView{Query:q,Language:lang,Kind:kind,Source:source,Sort:sortMode,Tag:tag}
+ if suwayomiEnabled()&&lang=="id"{v.SWOptions=swSourceOptions(r.Context())}
+ if strings.HasPrefix(source,"sw:"){
+  selected:=strings.TrimPrefix(source,"sw:");valid:=false;for _,opt:=range v.SWOptions{if opt.ID==selected{valid=true}};if !valid{http.Error(w,"Sumber tidak tersedia atau tidak diizinkan",400);return}
+  v.Sort="latest";v.Tag="";cards,e:=suwayomiSearchSelected(r.Context(),q,kind,selected);v.SuwayomiError=e!=nil;v.Cards=unifiedPage(cards,offset);dexPage(&v,offset,discoveryPageSize,len(cards));dexCoverPolicy(w);render(w,"dex_list",v);return
+ }
  var tags dexTagResponse
  if source!="local"&&dexFetch(r.Context(),"/manga/tag",nil,&tags)==nil&&tags.Result=="ok"{for _,t:=range tags.Data{if t.Attributes.Group=="genre"&&sourceUUID.MatchString(t.ID){v.TagOptions=append(v.TagOptions,dexTagOption{t.ID,dexText(t.Attributes.Name)})}}}
  if tag!=""&&source==""{source="mangadex";v.Source=source}

@@ -35,6 +35,6 @@ func suwayomiDiscovery(ctx context.Context,q,kind string)([]discoveryCard,error)
 }
 func filterSuwayomiCards(cards []discoveryCard,q,kind string)[]discoveryCard{
  out:=[]discoveryCard{}
- for _,c:=range cards{if (kind==""||strings.EqualFold(c.Type,kind))&&unifiedQueryMatch(c,q){out=append(out,c)}}
+ for _,c:=range cards{if swDiscoveryAllowed(c)&&(kind==""||strings.EqualFold(c.Type,kind))&&unifiedQueryMatch(c,q){out=append(out,c)}}
  return out
 }

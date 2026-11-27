@@ -9,7 +9,7 @@ func unifiedQueryMatch(c discoveryCard,q string)bool{
 }
 func enabledCatalogCards(in []discoveryCard)[]discoveryCard{
  allowed:=map[string]bool{};if scrapeEnabled(){for _,raw:=range strings.Fields(os.Getenv("INKVEIL_SCRAPE_CATALOG_URLS")){if u,e:=scrapeURL(raw);e==nil{allowed[u.Host]=true}}}
- out:=[]discoveryCard{};for _,c:=range in{if strings.HasPrefix(c.Source,"Linked: "){u,e:=scrapeURL(c.Href);if e!=nil||!allowed[u.Host]{continue}};if c.Source=="Supplemental provider"&&os.Getenv("INKVEIL_EXTRA_PERMISSION")!="yes"{continue};if c.Source=="Suwayomi"{id,e:=strconv.Atoi(strings.TrimPrefix(c.Href,"/suwayomi/"));if !suwayomiEnabled()||e!=nil||(!suwayomiIDs()[id]&&!suwayomiLibraryMode()){continue};if suwayomiPrivateMobile(){c.CoverURL=fmt.Sprintf("/sw-cover/%d",id)}};out=append(out,c)};return out
+ out:=[]discoveryCard{};for _,c:=range in{if strings.HasPrefix(c.Source,"Linked: "){u,e:=scrapeURL(c.Href);if e!=nil||!allowed[u.Host]{continue}};if c.Source=="Supplemental provider"&&os.Getenv("INKVEIL_EXTRA_PERMISSION")!="yes"{continue};if c.Source=="Suwayomi"{if !swDiscoveryAllowed(c){continue};id,e:=strconv.Atoi(strings.TrimPrefix(c.Href,"/suwayomi/"));if !suwayomiEnabled()||e!=nil||(!suwayomiIDs()[id]&&!suwayomiLibraryMode()){continue};if suwayomiPrivateMobile(){c.CoverURL=fmt.Sprintf("/sw-cover/%d",id)}};out=append(out,c)};return out
 }
 type catalogStatusRow struct{Language,State,Updated string;MangaDex,Extra,Linked int}
 func catalogStatusRows()[]catalogStatusRow{

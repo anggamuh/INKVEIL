@@ -4,6 +4,7 @@ import (
  "context"
  "encoding/json"
  "fmt"
+ "log"
  "os"
  "sort"
  "strings"
@@ -27,7 +28,11 @@ var suwayomiGlobalCache struct {
 func suwayomiGlobalSearch(ctx context.Context,q,kind string)([]discoveryCard,error){
  q=strings.TrimSpace(q)
  if q==""||len(q)>200||!suwayomiEnabled()||strings.TrimSpace(os.Getenv("INKVEIL_SUWAYOMI_SEARCH_SOURCES"))==""{return nil,nil}
- key:=os.Getenv("INKVEIL_SUWAYOMI_SEARCH_SOURCES")+"|"+q
+ return suwayomiSearchSelected(ctx,q,kind,"")
+}
+func suwayomiSearchSelected(ctx context.Context,q,kind,selected string)([]discoveryCard,error){
+ q=strings.TrimSpace(q);if q==""||len(q)>200||!suwayomiEnabled(){return nil,nil}
+ key:=os.Getenv("INKVEIL_SUWAYOMI_SEARCH_SOURCES")+"|"+selected+"|"+q
  suwayomiGlobalCache.Lock()
  if key==suwayomiGlobalCache.key&&time.Now().Before(suwayomiGlobalCache.expires){
  cards:=suwayomiGlobalCache.cards;suwayomiGlobalCache.Unlock()
@@ -35,20 +40,25 @@ func suwayomiGlobalSearch(ctx context.Context,q,kind string)([]discoveryCard,err
  }
  suwayomiGlobalCache.Unlock()
  select{case suwayomiGlobalSlot<-struct{}{}:defer func(){<-suwayomiGlobalSlot}();default:return nil,fmt.Errorf("Suwayomi search busy")}
- ctx,cancel:=context.WithTimeout(ctx,7*time.Second);defer cancel()
+ ctx,cancel:=context.WithTimeout(ctx,10*time.Second);defer cancel()
  sources,e:=suwayomiSources(ctx);if e!=nil{return nil,e}
  ids:=[]string{};for id:=range sources{if suwayomiGlobalSource(id){ids=append(ids,id)}};sort.Strings(ids)
  if len(ids)>3{ids=ids[:3]}
+ if selected!=""{filtered:=[]string{};for _,id:=range ids{if id==selected{filtered=append(filtered,id)}};ids=filtered}
+ type result struct{cards []discoveryCard;err error}
+ results:=make([]result,len(ids));var wg sync.WaitGroup
  var cards []discoveryCard
  var lastErr error
- for _,id:=range ids{
+ for i,id:=range ids{wg.Add(1);go func(i int,id string){defer wg.Done()
+ child,cancel:=context.WithTimeout(ctx,8*time.Second);defer cancel()
  source,_:=json.Marshal(id);query,_:=json.Marshal(q)
  var d struct{FetchSourceManga struct{Mangas []suwayomiManga}}
  gql:=fmt.Sprintf("mutation { fetchSourceManga(input:{source:%s,type:SEARCH,page:1,query:%s}) { mangas { id title author genre sourceId status thumbnailUrl inLibrary } } }",source,query)
- if e:=suwayomiQuery(ctx,gql,&d);e!=nil{lastErr=e;continue}
- if len(d.FetchSourceManga.Mangas)>100{lastErr=fmt.Errorf("too many search results");continue}
- for _,m:=range d.FetchSourceManga.Mangas{if m.ID>0&&m.SourceID==id&&strings.TrimSpace(m.Title)!=""{cards=append(cards,suwayomiCard(m))}}
- }
+ if e:=suwayomiQuery(child,gql,&d);e!=nil{results[i].err=e;return}
+ if len(d.FetchSourceManga.Mangas)>100{results[i].err=fmt.Errorf("too many search results");return}
+ for _,m:=range d.FetchSourceManga.Mangas{if m.ID>0&&m.SourceID==id&&strings.TrimSpace(m.Title)!=""{c:=suwayomiCard(m);c.SourceName=sources[id];results[i].cards=append(results[i].cards,c)}}
+ }(i,id)};wg.Wait()
+ for i,result:=range results{cards=append(cards,result.cards...);if result.err!=nil{lastErr=result.err;log.Printf("Suwayomi source %s search: %v",ids[i],result.err)}}
  cards=unifiedMerge(cards)
  if lastErr==nil{suwayomiGlobalCache.Lock();suwayomiGlobalCache.key=key;suwayomiGlobalCache.cards=cards;suwayomiGlobalCache.expires=time.Now().Add(time.Minute);suwayomiGlobalCache.Unlock()}
  return filterGlobalKind(cards,kind),lastErr
