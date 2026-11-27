@@ -126,3 +126,5 @@
 .iv-auth-card .iv-auth-error{color:#ffc5ca;background:#35242c;border:1px solid #69444f;padding:12px;border-radius:8px;font-size:13px;margin:0 0 14px}
 .iv-auth-actions{display:grid;gap:8px;margin-top:24px}.iv-auth-actions a{text-align:center}
 @media(max-width:700px){.iv-app .iv-auth-main{padding:28px 14px 44px;justify-content:flex-start}.iv-auth-card{padding:24px 20px;border-radius:16px}.iv-auth-page .site-footer{margin-top:auto}}
+
+.iv-library #iv-reading-stats{font-weight:650;color:var(--iv-text)}.iv-library #personal-bookmarks:empty:after,.iv-library #personal-history:empty:after{content:'Belum ada data pustaka provider.'}.iv-local-reading .iv-suwayomi-pages img{scroll-margin-top:65px}
