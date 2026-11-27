@@ -2,13 +2,17 @@
  const pages = Array.from(document.querySelectorAll('[data-dex-page]'));
  const main=document.getElementById('dex-reading-main');
  const status=document.getElementById('dex-status');
- let failed=0;
+ const failedPages=new Set();
+ const refreshSource=()=>{const u=new URL(location.href);location.href=u.href;};
+ document.querySelectorAll(".dex-refresh").forEach(b=>b.addEventListener("click",refreshSource));
+ document.getElementById("dex-quality")?.addEventListener("change",e=>{const u=new URL(location.href);u.searchParams.set("quality",e.target.value);location.href=u.href;});
+ const updateStatus=()=>{if(status)status.textContent=failedPages.size?failedPages.size+" gambar gagal. Refresh sumber atau pilih kualitas Original.":"";};
  const load=img=>{
   if(img.dataset.started==='1')return;
   img.dataset.started='1';
   const error=img.parentElement.querySelector('.dex-page-error');
-  img.addEventListener('load',()=>{img.classList.add('loaded');if(error)error.hidden=true;},{once:true});
-  img.addEventListener('error',()=>{img.classList.add('failed');if(error)error.hidden=false;failed++;if(status)status.textContent=failed+' pemuatan gambar gagal. Cek koneksi atau izin akses sumber.';},{once:true});
+  img.addEventListener('load',()=>{img.classList.add('loaded');img.classList.remove("failed");failedPages.delete(img);updateStatus();if(error)error.hidden=true;},{once:true});
+  img.addEventListener('error',()=>{img.classList.add('failed');if(error)error.hidden=false;failedPages.add(img);updateStatus();},{once:true});
   img.src=img.dataset.dexPage;
  };
  if('IntersectionObserver' in window){
