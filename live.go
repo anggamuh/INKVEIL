@@ -2,6 +2,7 @@ package main
 
 import (
  "context"
+ "bytes"
  "encoding/json"
  "fmt"
  "io"
@@ -38,6 +39,7 @@ func liveFetch(ctx context.Context,base *url.URL,path string,q url.Values,out an
  resp,e:=liveClient.Do(req);if e!=nil{return fmt.Errorf("source request failed: %w",e)};defer resp.Body.Close()
  if resp.StatusCode!=200{return fmt.Errorf("source HTTP %d",resp.StatusCode)}
  b,e:=io.ReadAll(io.LimitReader(resp.Body,(2<<20)+1));if e!=nil||len(b)>2<<20{return fmt.Errorf("invalid source response size")}
+ if bytes.HasPrefix(bytes.TrimSpace(b),[]byte("<")){return fmt.Errorf("provider returned HTML instead of JSON; browser verification or service error")}
  if e=json.Unmarshal(b,out);e!=nil{return fmt.Errorf("invalid source JSON: %w",e)}
  if strings.HasPrefix(path,"/at-home/server/"){return nil}
  liveMu.Lock();if len(liveCache)>=128{liveCache=map[string]liveEntry{}};liveCache[key]=liveEntry{b,time.Now().Add(time.Minute)};liveMu.Unlock();return nil
