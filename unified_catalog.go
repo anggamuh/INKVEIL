@@ -50,7 +50,7 @@ func refreshUnifiedCatalog()error{
  ctx,cancel:=context.WithTimeout(context.Background(),20*time.Minute);defer cancel()
  if _,e:=catalogDB.ExecContext(ctx,"CREATE TABLE IF NOT EXISTS inkveil_unified_catalog (lang VARCHAR(2) PRIMARY KEY, payload MEDIUMBLOB NOT NULL, updated_at BIGINT NOT NULL) ENGINE=InnoDB");e!=nil{return e}
  snapshots:=map[string][]byte{}
- for _,lang:=range []string{"id","en"}{dex,e:=unifiedRemote(ctx,lang);if e!=nil{return e};extra,e:=unifiedExtra(ctx,lang);if e!=nil{return e};b,e:=json.Marshal(unifiedMerge(dex,extra));if e!=nil{return e};if len(b)>12<<20{return fmt.Errorf("catalog snapshot too large")};snapshots[lang]=b;log.Printf("Unified catalog %s: %d MangaDex, %d supplemental",lang,len(dex),len(extra))}
+ for _,lang:=range []string{"id","en"}{dex,e:=unifiedRemote(ctx,lang);if e!=nil{return e};extra,e:=unifiedExtra(ctx,lang);if e!=nil{return e};scraped,e:=scrapeCatalog(ctx,lang);if e!=nil{return e};b,e:=json.Marshal(unifiedMerge(dex,extra,scraped));if e!=nil{return e};if len(b)>12<<20{return fmt.Errorf("catalog snapshot too large")};snapshots[lang]=b;log.Printf("Unified catalog %s: %d MangaDex, %d supplemental",lang,len(dex),len(extra))}
  tx,e:=catalogDB.BeginTx(ctx,nil);if e!=nil{return e};defer tx.Rollback()
  for _,lang:=range []string{"id","en"}{if _,e=tx.ExecContext(ctx,"INSERT INTO inkveil_unified_catalog(lang,payload,updated_at) VALUES (?,?,?) ON DUPLICATE KEY UPDATE payload=?,updated_at=?",lang,snapshots[lang],time.Now().Unix(),snapshots[lang],time.Now().Unix());e!=nil{return e}};return tx.Commit()
 }
@@ -60,7 +60,7 @@ func unifiedCatalogSnapshot(lang,q,kind string)([]discoveryCard,bool){
  var indexed []discoveryCard;if json.Unmarshal(b,&indexed)!=nil{return nil,false}
  catalogMu.RLock();local:=localDiscovery(catalog,"","");catalogMu.RUnlock()
  all:=unifiedMerge(local,indexed);q=strings.ToLower(strings.TrimSpace(q));out:=[]discoveryCard{}
- for _,c:=range all{if c.Source=="Supplemental provider"&&os.Getenv("INKVEIL_EXTRA_PERMISSION")!="yes"{continue};if kind!=""&&!strings.EqualFold(kind,c.Type){continue};if !strings.Contains(strings.ToLower(c.Title+" "+c.Author+" "+c.Genre+" "+strings.Join(c.Aliases," ")),q){continue};out=append(out,c)}
+ for _,c:=range all{if strings.HasPrefix(c.Source,"Linked: ")&&!scrapeEnabled(){continue};if c.Source=="Supplemental provider"&&os.Getenv("INKVEIL_EXTRA_PERMISSION")!="yes"{continue};if kind!=""&&!strings.EqualFold(kind,c.Type){continue};if !strings.Contains(strings.ToLower(c.Title+" "+c.Author+" "+c.Genre+" "+strings.Join(c.Aliases," ")),q){continue};out=append(out,c)}
  return out,true
 }
 func extraDetailHandler(w http.ResponseWriter,r *http.Request){base,e:=extraBase();if e!=nil{http.NotFound(w,r);return};t,e:=loadLiveTitle(r,base);if e!=nil{liveFailure(w,e);return};render(w,"extra_detail",t)}
