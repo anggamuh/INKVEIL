@@ -90,10 +90,10 @@ func suwayomiCover(m suwayomiManga) string {
  if m.ThumbnailURL==path || m.ThumbnailURL==suwayomiOrigin+path{if suwayomiPrivateMobile(){return fmt.Sprintf("/sw-cover/%d",m.ID)};return suwayomiOrigin+path}
  return ""
 }
-func suwayomiDiscoveryKey() string{return os.Getenv("INKVEIL_SUWAYOMI_MANGA_IDS")+"|"+os.Getenv("INKVEIL_SUWAYOMI_LIBRARY")}
+func suwayomiDiscoveryKey() string{return os.Getenv("INKVEIL_SUWAYOMI_MANGA_IDS")+"|"+os.Getenv("INKVEIL_SUWAYOMI_LIBRARY")+"|"+os.Getenv("INKVEIL_SUWAYOMI_SEARCH_SOURCES")}
 func suwayomiCard(m suwayomiManga) discoveryCard {
  kind:="";for _,g:=range m.Genre{switch strings.ToLower(strings.TrimSpace(g)){case "manga":kind="Manga";case "manhwa":kind="Manhwa";case "manhua":kind="Manhua"}}
- return discoveryCard{Title:m.Title,Author:m.Author,Type:kind,Genre:strings.Join(m.Genre,", "),Status:m.Status,CoverURL:suwayomiCover(m),Href:fmt.Sprintf("/suwayomi/%d",m.ID),Source:"Suwayomi"}
+ return discoveryCard{Title:m.Title,Author:m.Author,Type:kind,Genre:strings.Join(m.Genre,", "),Status:m.Status,CoverURL:suwayomiCover(m),Href:fmt.Sprintf("/suwayomi/%d",m.ID),Source:"Suwayomi",SourceID:m.SourceID}
 }
 func suwayomiLibrary(ctx context.Context,sources map[string]string)([]discoveryCard,error){
  var out []discoveryCard
@@ -102,7 +102,7 @@ func suwayomiLibrary(ctx context.Context,sources map[string]string)([]discoveryC
  query:=fmt.Sprintf("{ mangas(condition:{inLibrary:true},first:50,offset:%d,order:[{by:ID,byType:ASC}]) { nodes { id title author genre sourceId status thumbnailUrl inLibrary } pageInfo { hasNextPage } } }",offset)
  if e:=suwayomiQuery(ctx,query,&d);e!=nil{return nil,e}
  if len(d.Mangas.Nodes)>50{return nil,fmt.Errorf("invalid library page")}
- for _,m:=range d.Mangas.Nodes{if m.ID>0&&m.InLibrary&&sources[m.SourceID]!=""&&strings.TrimSpace(m.Title)!=""{out=append(out,suwayomiCard(m))}}
+ for _,m:=range d.Mangas.Nodes{if m.ID>0&&m.InLibrary&&sources[m.SourceID]!=""&&strings.TrimSpace(m.Title)!=""{c:=suwayomiCard(m);c.SourceName=sources[m.SourceID];out=append(out,c)}}
  if !d.Mangas.PageInfo.HasNextPage{return out,nil}
  if len(d.Mangas.Nodes)!=50{return nil,fmt.Errorf("incomplete library page")}
  }
@@ -117,7 +117,7 @@ func unifiedSuwayomi(ctx context.Context,lang string)([]discoveryCard,error){
  ordered:=make([]int,0,len(ids));for id:=range ids{ordered=append(ordered,id)};sort.Ints(ordered)
  for _,id:=range ordered{
  m,e:=suwayomiTitle(ctx,id,sources,false);if e!=nil{return nil,e}
- out=append(out,suwayomiCard(m))
+ c:=suwayomiCard(m);c.SourceName=sources[m.SourceID];out=append(out,c)
  }
  return unifiedMerge(out),nil
 }

@@ -7,6 +7,7 @@ import (
 
 type discoveryCard struct {
  Title,Genre,Type,Status,CoverURL,Href,Source,Latest string
+ SourceID,SourceName string
  Author string
  Aliases []string
  Year int

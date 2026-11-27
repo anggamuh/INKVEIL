@@ -49,7 +49,7 @@ func recentSuwayomiReleases(ctx context.Context)([]discoveryCard,error){
  m:=ch.Manga;if m.ID<=0||ch.ID<=0||strings.TrimSpace(m.Title)==""||sources[m.SourceID]==""||!suwayomiAllowed(m){continue}
  millis,e:=strconv.ParseInt(ch.UploadDate,10,64);if e!=nil||millis<=0{continue}
  at:=millis/1000;if !validReleaseTime(at,now){continue}
- c:=suwayomiCard(m);releaseLabel(&c,releaseStamp{strconv.FormatFloat(ch.ChapterNumber,'f',-1,64),at});out=append(out,c)
+ c:=suwayomiCard(m);c.SourceName=sources[m.SourceID];if !swDiscoveryAllowed(c){continue};releaseLabel(&c,releaseStamp{strconv.FormatFloat(ch.ChapterNumber,'f',-1,64),at});out=append(out,c)
  }
  return out,nil
 }
