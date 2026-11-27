@@ -159,7 +159,7 @@ func suwayomiReaderHandler(w http.ResponseWriter,r *http.Request){
  p:=d.FetchChapterPages
  if p.Chapter.ID!=chapter||p.Chapter.MangaID!=id||len(p.Pages)==0||len(p.Pages)>500{http.Error(w,"Invalid chapter response",502);return}
  urls:=make([]string,0,len(p.Pages));for _,raw:=range p.Pages{u:=suwayomiPageURL(id,raw);if u==""{http.Error(w,"Invalid page URL",502);return};urls=append(urls,u)}
- v:=struct{ID,Prev,Next int;Title,Chapter,Source string;Images []string}{ID:id,Title:m.Title,Chapter:m.Chapters.Nodes[idx].Name,Source:sources[m.SourceID],Images:urls}
+ v:=struct{ID,Prev,Next,ChapterID int;Title,Chapter,Source string;Images []string}{ID:id,ChapterID:chapter,Title:m.Title,Chapter:m.Chapters.Nodes[idx].Name,Source:sources[m.SourceID],Images:urls}
  if idx>0{v.Prev=m.Chapters.Nodes[idx-1].ID};if idx+1<len(m.Chapters.Nodes){v.Next=m.Chapters.Nodes[idx+1].ID}
  suwayomiImagePolicy(w);w.Header().Set("Cache-Control","no-store");render(w,"suwayomi_reader",v)
 }

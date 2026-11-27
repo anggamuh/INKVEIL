@@ -46,7 +46,7 @@ func dexChapter(w http.ResponseWriter,r *http.Request){
  if !belongs||dexBlocked(d.Data){http.NotFound(w,r);return}
  if len(groups)==0{groups=append(groups,"Independent / uncredited uploader")}
  lang:=d.Data.Attributes.TranslatedLanguage
- if lang!="id"&&lang!="en"{http.NotFound(w,r);return}
+ if (lang!="id"&&lang!="en")||(os.Getenv("INKVEIL_ID_ONLY")=="yes"&&lang!="id"){http.NotFound(w,r);return}
  number:="Oneshot";if d.Data.Attributes.Chapter!=nil{number=*d.Data.Attributes.Chapter}
  quality:=r.URL.Query().Get("quality");if quality!="original"{quality="saver"}
  v:=dexReaderView{Quality:quality,ID:id,Title:dexText(title.Data.Attributes.Title),Number:number,Chapter:ch,Group:strings.Join(groups,", "),Language:lang,Offset:offset}

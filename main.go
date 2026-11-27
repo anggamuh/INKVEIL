@@ -66,9 +66,13 @@ func configuredHandler(provider string) http.Handler {
  mux.HandleFunc("GET /sitemap.xml",sitemapHandler)
  mux.HandleFunc("GET /account",accountGet)
  mux.HandleFunc("POST /account",accountPost)
+ mux.HandleFunc("GET /api/provider-health",providerHealth)
+ mux.HandleFunc("POST /api/reading-updates",readingUpdates)
+ mux.HandleFunc("GET /manifest.webmanifest",manifestHandler)
+ mux.HandleFunc("GET /app-icon.svg",appIconHandler)
  mux.HandleFunc("GET /api/dex-library",dexLibraryAPI)
  mux.HandleFunc("POST /api/dex-library",dexLibraryAPI)
- mux.HandleFunc("GET /settings",func(w http.ResponseWriter,r *http.Request){accountHeaders(w);render(w,"personal_settings",struct{Provider string;Reader,Database,Indexed bool;Limit int;Catalog []catalogStatusRow}{provider,os.Getenv("INKVEIL_DEX_READER")=="yes",catalogDB!=nil,os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes",unifiedDexLimit(),catalogStatusRows()})})
+ mux.HandleFunc("GET /settings",func(w http.ResponseWriter,r *http.Request){accountHeaders(w);render(w,"personal_settings",struct{Provider string;Reader,Database,Indexed,Suwayomi,SuwayomiReader,GlobalSearch bool;Limit int;Catalog []catalogStatusRow}{provider,os.Getenv("INKVEIL_DEX_READER")=="yes",catalogDB!=nil,os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes",suwayomiEnabled(),suwayomiReaderEnabled(),suwayomiEnabled()&&strings.TrimSpace(os.Getenv("INKVEIL_SUWAYOMI_SEARCH_SOURCES"))!="",unifiedDexLimit(),catalogStatusRows()})})
  mux.HandleFunc("GET /api/library",libraryAPI)
  mux.HandleFunc("POST /api/library",libraryAPI)
  mux.HandleFunc("GET /ranking",rankingHandler)
@@ -86,7 +90,7 @@ func configuredHandler(provider string) http.Handler {
  w.Header().Set("X-Frame-Options","DENY")
  w.Header().Set("Content-Security-Policy","default-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  if r.Method=="GET"&&(r.URL.Path=="/"||r.URL.Path=="/series")&&provider=="mangadex"{dexList(w,r);return}
- if r.URL.Path=="/api/dex-library"{mux.ServeHTTP(w,r);return}
+ if r.URL.Path=="/api/dex-library"||r.URL.Path=="/api/provider-health"||r.URL.Path=="/api/reading-updates"{mux.ServeHTTP(w,r);return}
  if strings.HasPrefix(r.URL.Path,"/suwayomi/")||strings.HasPrefix(r.URL.Path,"/extra/")||r.URL.Path=="/live"||strings.HasPrefix(r.URL.Path,"/live/")||strings.HasPrefix(r.URL.Path,"/dex-cover/")||strings.HasPrefix(r.URL.Path,"/dex-page/"){mux.ServeHTTP(w,r);return}
  if strings.HasPrefix(r.URL.Path,"/admin/") && r.URL.Path!="/admin/analytics"{mux.ServeHTTP(w,r);return}
  if r.Method=="POST" && r.URL.Path=="/admin" {mux.ServeHTTP(w,r);return}
