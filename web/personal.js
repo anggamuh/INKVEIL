@@ -2,17 +2,21 @@
 "use strict";
 const key="inkveil.personal.dex.v1",uuid=s=>typeof s==="string"&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(s);
 let state={bookmarks:{},history:{},read:{}};
-function load(){try{const s=JSON.parse(localStorage.getItem(key)||"{}");for(const k of Object.keys(state))if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k]))state[k]=s[k];}catch{}}
-load();
-function save(){try{localStorage.setItem(key,JSON.stringify(state));}catch{const n=document.getElementById("dex-status");if(n)n.textContent="Penyimpanan pustaka gagal.";}}
+function load(){if(account)return;try{const s=JSON.parse(localStorage.getItem(key)||"{}");for(const k of Object.keys(state))if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k]))state[k]=s[k];}catch{}}
+let account=false,revision=0,chain=Promise.resolve(),blocked=false;
+function warning(message){let n=document.getElementById("personal-sync-status");if(!n){n=document.createElement("p");n.id="personal-sync-status";n.setAttribute("role","status");document.querySelector("main")?.prepend(n);}n.textContent=message;}
+async function initialize(){load();try{const r=await fetch("/api/dex-library",{cache:"no-store"});if(!r.ok)throw Error();const d=await r.json();if(d.authenticated){account=true;revision=d.revision;state=d.state;warning("MangaDex: library akun MySQL.");}else warning("MangaDex: mode browser lokal.");}catch{blocked=true;warning("Library tidak tersedia; perubahan dinonaktifkan hingga reload.");}}
+function save(){if(blocked)return;if(account){const snapshot=JSON.parse(JSON.stringify(state));chain=chain.then(async()=>{if(blocked)return;try{const r=await fetch("/api/dex-library",{method:"POST",headers:{"Content-Type":"application/json","X-Inkveil-Request":"dex-library"},body:JSON.stringify({revision,state:snapshot}),cache:"no-store"});if(!r.ok)throw Error();const d=await r.json();if(!d.authenticated)throw Error();revision=d.revision;}catch{blocked=true;warning("Sinkronisasi gagal atau data berubah. Reload sebelum mengubah library lagi.");}});return;}
+try{localStorage.setItem(key,JSON.stringify(state));}catch{const n=document.getElementById("dex-status");if(n)n.textContent="Penyimpanan pustaka gagal.";}}
 const lang=s=>s==="en"?"en":"id";
 const detail=(id,l)=>"/live/"+id+"?lang="+lang(l);
 const chapter=(id,c,l)=>{let q="";try{q=localStorage.getItem("inkveil-quality")==="original"?"&quality=original":"";}catch{}return "/live/"+id+"/"+c+"?lang="+lang(l)+q;};
 const sorted=o=>Object.values(o).filter(x=>x&&uuid(x.id)).sort((a,b)=>(b.time||0)-(a.time||0));
 const trim=(o,max)=>Object.fromEntries(sorted(o).slice(0,max).map(x=>[x.id,x]));
-function entry(item,reading){const box=document.createElement("article");box.className="personal-entry";const title=document.createElement("strong");title.textContent=item.title||item.id;const a=document.createElement("a");a.textContent=reading?"Lanjut chapter "+(item.number||""):"Detail MangaDex";a.href=reading&&uuid(item.chapter)?chapter(item.id,item.chapter,item.lang):detail(item.id,item.lang);box.append(title,a);if(!reading){const b=document.createElement("button");b.type="button";b.className="secondary";b.textContent="Hapus bookmark";b.onclick=()=>{load();delete state.bookmarks[item.id];save();render();};box.append(b);}return box;}
+function entry(item,reading){const box=document.createElement("article");box.className="personal-entry";const title=document.createElement("strong");title.textContent=item.title||item.id;const a=document.createElement("a");a.textContent=reading?"Lanjut chapter "+(item.number||""):"Detail MangaDex";a.href=reading&&uuid(item.chapter)?chapter(item.id,item.chapter,item.lang):detail(item.id,item.lang);box.append(title,a);if(!reading){const b=document.createElement("button");b.type="button";b.className="secondary";b.textContent="Hapus bookmark";b.onclick=()=>{if(blocked)return;load();delete state.bookmarks[item.id];save();render();};box.append(b);}return box;}
 function fill(id,items,reading){const el=document.getElementById(id);if(el)el.replaceChildren(...items.map(x=>entry(x,reading)));}
 function render(){const books=sorted(state.bookmarks),history=sorted(state.history);fill("personal-bookmarks",books,false);fill("personal-history",history,true);fill("personal-continue-list",history.slice(0,6),true);const section=document.getElementById("personal-continue");if(section)section.hidden=!history.length;}
+async function start(){await initialize();
 const root=document.querySelector("[data-personal-id]");
 if(root&&uuid(root.dataset.personalId)){
  const id=root.dataset.personalId,title=root.dataset.personalTitle||id,l=lang(root.dataset.personalLang),latest=root.dataset.personalLatest;
@@ -27,12 +31,15 @@ if(root&&uuid(root.dataset.personalId)){
  if(bm&&uuid(latest)&&!bm.latest){bm.latest=latest;bm.lang=l;save();}
  root.querySelectorAll("[data-personal-chapter]").forEach(a=>{if(state.read[a.dataset.personalChapter])a.classList.add("personal-read");});
  const c=root.dataset.personalReading;
- if(uuid(c)){state.history[id]={id,title,lang:l,chapter:c,number:root.dataset.personalNumber,time:Date.now()};state.history=trim(state.history,100);save();
- window.addEventListener("inkveil-page-loaded",e=>{if(e.detail.index===e.detail.total-1){load();state.read[c]=Date.now();state.read=Object.fromEntries(Object.entries(state.read).sort((a,b)=>b[1]-a[1]).slice(0,2000));save();}});}
+ if(uuid(c)&&!blocked){state.history[id]={id,title,lang:l,chapter:c,number:root.dataset.personalNumber,time:Date.now()};state.history=trim(state.history,100);save();
+ window.addEventListener("inkveil-page-loaded",e=>{if(!blocked&&e.detail.index===e.detail.total-1){load();state.read[c]=Date.now();state.read=Object.fromEntries(Object.entries(state.read).sort((a,b)=>b[1]-a[1]).slice(0,2000));save();}});}
 }
-document.getElementById("personal-clear")?.addEventListener("click",()=>{if(confirm("Hapus riwayat MangaDex?")){load();state.history={};state.read={};save();render();}});
+document.getElementById("personal-clear")?.addEventListener("click",()=>{if(!blocked&&confirm("Hapus riwayat MangaDex?")){load();state.history={};state.read={};save();render();}});
 const rail=document.getElementById("personal-featured-list"),cards=[...document.querySelectorAll(".dex-grid .dex-card")];
-if(rail&&cards.length&&(!location.search||new URLSearchParams(location.search).get("offset")==="0")){rail.replaceChildren(...cards.slice(0,6).map(x=>x.cloneNode(true)));document.getElementById("personal-featured").hidden=false;document.querySelectorAll("[data-rail]").forEach(b=>b.onclick=()=>rail.scrollBy({left:Number(b.dataset.rail)*rail.clientWidth*.8,behavior:"smooth"}));}
-document.addEventListener("click",e=>{const a=e.target.closest?.("a[href]");if(!a)return;const u=new URL(a.href,location.href);if(u.origin===location.origin&&/^\/live\/[a-f0-9-]+\/[a-f0-9-]+$/i.test(u.pathname)&&!u.searchParams.has("quality")){try{if(localStorage.getItem("inkveil-quality")==="original"){u.searchParams.set("quality","original");a.href=u.href;}}catch{}}});
+if(rail&&cards.length&&!new URLSearchParams(location.search).get("q")&&Number(new URLSearchParams(location.search).get("offset")||0)===0){rail.replaceChildren(...cards.slice(0,6).map(x=>x.cloneNode(true)));document.getElementById("personal-featured").hidden=false;document.querySelectorAll("[data-rail]").forEach(b=>b.onclick=()=>rail.scrollBy({left:Number(b.dataset.rail)*rail.clientWidth*.8,behavior:"smooth"}));}
+document.addEventListener("click",e=>{const a=e.target.closest?.("a[href]");if(!a)return;const u=new URL(a.href,location.href);if(u.origin===location.origin&&u.pathname==="/"&&!u.search){try{const source=localStorage.getItem("inkveil-default-source"),l=localStorage.getItem("inkveil-default-lang");if(["local","mangadex"].includes(source))u.searchParams.set("source",source);if(["id","en"].includes(l))u.searchParams.set("lang",l);a.href=u.href;}catch{}}if(u.origin===location.origin&&/^\/live\/[a-f0-9-]+\/[a-f0-9-]+$/i.test(u.pathname)&&!u.searchParams.has("quality")){try{if(localStorage.getItem("inkveil-quality")==="original"){u.searchParams.set("quality","original");a.href=u.href;}}catch{}}});
 render();
+const settings=document.getElementById("personal-settings-form");if(settings){for(const [name,key,values] of [["quality","inkveil-quality",["saver","original"]],["width","inkveil-dex-width",["normal","wide","compact"]],["source","inkveil-default-source",["","local","mangadex"]],["lang","inkveil-default-lang",["id","en"]]]){const el=settings.elements[name];try{const v=localStorage.getItem(key);if(values.includes(v))el.value=v;}catch{}}settings.addEventListener("submit",e=>{e.preventDefault();try{for(const [name,key] of [["quality","inkveil-quality"],["width","inkveil-dex-width"],["source","inkveil-default-source"],["lang","inkveil-default-lang"]])localStorage.setItem(key,settings.elements[name].value);warning("Preferensi disimpan di browser.");}catch{warning("Gagal menyimpan preferensi.");}});}
+}
+start();
 })();
