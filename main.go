@@ -33,6 +33,7 @@ func configuredHandler(provider string) http.Handler {
  for _,c:=range catalog { if strings.Contains(strings.ToLower(c.Title+" "+c.Genre+" "+c.Author+" "+c.Artist),q) && (kind=="" || strings.EqualFold(kind,c.Type)) && (status=="" || strings.EqualFold(status,c.Status)){items=append(items,c)} }
  v:=buildHome(r,items,catalog[0]);if r.URL.Path=="/series"{render(w,"series",v)}else{render(w,"home",v)}
  }
+ mux.HandleFunc("GET /advanced-reader.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/advanced-reader.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /sw-reader.js",func(w http.ResponseWriter,r *http.Request){b,_:=assets.ReadFile("web/sw-reader.js");w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write(b)})
  mux.HandleFunc("GET /sw-cover/{id}",swCoverHandler)
  mux.HandleFunc("GET /sw-page/{token}/{index}",swPageHandler)
