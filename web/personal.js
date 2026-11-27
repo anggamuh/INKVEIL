@@ -22,7 +22,7 @@ if(root&&uuid(root.dataset.personalId)){
  const id=root.dataset.personalId,title=root.dataset.personalTitle||id,l=lang(root.dataset.personalLang),latest=root.dataset.personalLatest;
  const buttons=[...document.querySelectorAll("[data-personal-bookmark]")];
  function mark(){for(const b of buttons){b.textContent=state.bookmarks[id]?"Hapus bookmark":"Simpan komik";b.setAttribute("aria-pressed",String(!!state.bookmarks[id]));}}
- buttons.forEach(b=>b.onclick=()=>{load();if(state.bookmarks[id])delete state.bookmarks[id];else state.bookmarks[id]={id,title,lang:l,latest:uuid(latest)?latest:"",time:Date.now()};state.bookmarks=trim(state.bookmarks,500);save();mark();});
+ buttons.forEach(b=>b.onclick=()=>{if(blocked)return;load();if(state.bookmarks[id])delete state.bookmarks[id];else state.bookmarks[id]={id,title,lang:l,latest:uuid(latest)?latest:"",time:Date.now()};state.bookmarks=trim(state.bookmarks,500);save();mark();});
  mark();
  const saved=state.history[id],resume=root.querySelector("[data-personal-resume]");
  if(resume&&saved&&uuid(saved.chapter)){resume.href=chapter(id,saved.chapter,saved.lang);resume.hidden=false;}
