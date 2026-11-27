@@ -1,6 +1,6 @@
 package main
 import("database/sql";"encoding/json";"errors";"net/http";"time";"unicode/utf8";"strconv";"strings")
-type dexSavedItem struct{ID string `json:"id"`;Title string `json:"title"`;Lang string `json:"lang"`;Latest string `json:"latest,omitempty"`;Chapter string `json:"chapter,omitempty"`;Number string `json:"number,omitempty"`;Time int64 `json:"time"`;Page int `json:"page,omitempty"`}
+type dexSavedItem struct{ID string `json:"id"`;Title string `json:"title"`;Lang string `json:"lang"`;Latest string `json:"latest,omitempty"`;Chapter string `json:"chapter,omitempty"`;Number string `json:"number,omitempty"`;Time int64 `json:"time"`;Page int `json:"page,omitempty"`;Status string `json:"status,omitempty"`;Rating int `json:"rating,omitempty"`;Collection string `json:"collection,omitempty"`}
 type dexSavedState struct{Bookmarks map[string]dexSavedItem `json:"bookmarks"`;History map[string]dexSavedItem `json:"history"`;Read map[string]int64 `json:"read"`}
 type dexSavedResponse struct{Authenticated bool `json:"authenticated"`;Revision uint64 `json:"revision"`;State dexSavedState `json:"state"`}
 func dexEmptyState()dexSavedState{return dexSavedState{map[string]dexSavedItem{},map[string]dexSavedItem{},map[string]int64{}}}
@@ -11,7 +11,7 @@ func savedProviderID(s string)bool{return sourceUUID.MatchString(s)||savedLocalI
 func savedSameProvider(id,chapter string)bool{return (sourceUUID.MatchString(id)&&sourceUUID.MatchString(chapter))||(savedLocalID(id)&&savedLocalID(chapter))}
 func dexValidState(s dexSavedState)bool{
  if s.Bookmarks==nil||s.History==nil||s.Read==nil||len(s.Bookmarks)>500||len(s.History)>100||len(s.Read)>2000{return false}
- for _,group:=range []map[string]dexSavedItem{s.Bookmarks,s.History}{for k,v:=range group{if !savedProviderID(k)||k!=v.ID||(savedLocalID(k)&&v.Lang!="id")||v.Page<0||v.Page>499||len(v.Title)>1024||!utf8.ValidString(v.Title)||(v.Lang!="id"&&v.Lang!="en")||len(v.Number)>80||v.Time<0||v.Time>time.Now().Add(24*time.Hour).UnixMilli()||(v.Latest!=""&&!savedSameProvider(k,v.Latest))||(v.Chapter!=""&&!savedSameProvider(k,v.Chapter)){return false}}}
+ for _,group:=range []map[string]dexSavedItem{s.Bookmarks,s.History}{for k,v:=range group{if !savedProviderID(k)||k!=v.ID||(savedLocalID(k)&&v.Lang!="id")||!validReadingStatus(v.Status)||v.Rating<0||v.Rating>5||len(v.Collection)>80||!utf8.ValidString(v.Collection)||v.Page<0||v.Page>499||len(v.Title)>1024||!utf8.ValidString(v.Title)||(v.Lang!="id"&&v.Lang!="en")||len(v.Number)>80||v.Time<0||v.Time>time.Now().Add(24*time.Hour).UnixMilli()||(v.Latest!=""&&!savedSameProvider(k,v.Latest))||(v.Chapter!=""&&!savedSameProvider(k,v.Chapter)){return false}}}
  for k,v:=range s.History{if !savedSameProvider(k,v.Chapter){return false}}
  for k,v:=range s.Read{if !savedProviderID(k)||v<0||v>time.Now().Add(24*time.Hour).UnixMilli(){return false}}
  return true
