@@ -89,12 +89,13 @@ func dexList(w http.ResponseWriter,r *http.Request){
  if tag!=""&&source==""{source="mangadex";v.Source=source}
  if suwayomiEnabled()&&lang=="id"&&source==""&&tag==""&&sortMode=="latest"{
  cards,err:=suwayomiDiscovery(r.Context(),q,kind);v.SuwayomiError=err!=nil
+ global,globalErr:=suwayomiGlobalSearch(r.Context(),q,kind);if globalErr!=nil{v.SuwayomiError=true};cards=unifiedMerge(cards,global)
  var indexed []discoveryCard;if os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes"{indexed,_=unifiedCatalogSnapshot(lang,q,kind)}
  clean:=[]discoveryCard{};for _,c:=range indexed{if c.Source!="Suwayomi"{clean=append(clean,c)}}
  catalogMu.RLock();local:=localDiscovery(catalog,q,kind);catalogMu.RUnlock()
  params.Set("limit","100");params.Set("offset","0");var live dexListResponse;fresh:=[]discoveryCard{}
  if e:=dexFetch(r.Context(),"/manga",params,&live);e!=nil||live.Result!="ok"||len(live.Data)>100{v.LiveError=true}else{for _,item:=range live.Data{t:=dexTitle(item);if sourceUUID.MatchString(t.ID)&&t.Title!=""{fresh=append(fresh,remoteDiscovery(t,lang))}}}
- merged:=unifiedMerge(local, fresh,clean,cards);v.Cards=unifiedPage(merged,offset);dexPage(&v,offset,discoveryPageSize,len(merged));dexCoverPolicy(w);render(w,"dex_list",v);return
+ merged:=unifiedMerge(local, fresh,cards,clean);v.Cards=unifiedPage(merged,offset);dexPage(&v,offset,discoveryPageSize,len(merged));dexCoverPolicy(w);render(w,"dex_list",v);return
  }
  if os.Getenv("INKVEIL_UNIFIED_INDEX")=="yes"&&source==""&&tag==""&&sortMode=="latest"{if cards,ok:=unifiedCatalogSnapshot(lang,q,kind);ok{if strings.TrimSpace(q)!=""{v.IndexedSearch=true;params.Set("limit","100");params.Set("offset","0");var live dexListResponse;if e:=dexFetch(r.Context(),"/manga",params,&live);e!=nil||live.Result!="ok"||len(live.Data)>100{v.LiveError=true}else{fresh:=[]discoveryCard{};for _,item:=range live.Data{t:=dexTitle(item);if sourceUUID.MatchString(t.ID)&&t.Title!=""{fresh=append(fresh,remoteDiscovery(t,lang))}};cards=mergeIndexedSearch(cards,fresh)}};v.Cards=unifiedPage(cards,offset);dexPage(&v,offset,discoveryPageSize,len(cards));dexCoverPolicy(w);render(w,"dex_list",v);return}}
  var local []discoveryCard
