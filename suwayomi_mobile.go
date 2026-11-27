@@ -1,6 +1,7 @@
 package main
 
 import (
+ "context"
  "crypto/sha256"
  "crypto/subtle"
  "fmt"
@@ -26,6 +27,16 @@ type swPageGrant struct{URLs []string;Expires time.Time}
 var swGrantMu sync.Mutex
 var swGrants=map[string]swPageGrant{}
 var swImageSlots=make(chan struct{},3)
+var swImageQueue=make(chan struct{},32)
+func swAcquireImage(ctx context.Context)(func(),bool){
+ select{case swImageQueue<-struct{}{}:default:return nil,false}
+ wait,cancel:=context.WithTimeout(ctx,12*time.Second);defer cancel()
+ select{
+ case swImageSlots<-struct{}{}:
+ return func(){<-swImageSlots;<-swImageQueue},true
+ case <-wait.Done():<-swImageQueue;return nil,false
+ }
+}
 func swRegisterPages(urls []string)([]string,error){
  if len(urls)==0||len(urls)>500{return nil,fmt.Errorf("invalid pages")}
  token,e:=randomToken();if e!=nil{return nil,e}
@@ -47,7 +58,7 @@ func swImage(w http.ResponseWriter,r *http.Request,raw string,max int64){
 }
 func swCoverHandler(w http.ResponseWriter,r *http.Request){
  id,e:=strconv.Atoi(r.PathValue("id"));if e!=nil||id<=0||!suwayomiEnabled()||!suwayomiPrivateMobile(){http.NotFound(w,r);return}
- select{case swImageSlots<-struct{}{}:defer func(){<-swImageSlots}();default:http.Error(w,"Image busy",503);return}
+ release,ok:=swAcquireImage(r.Context());if !ok{w.Header().Set("Retry-After","2");http.Error(w,"Image queue busy",503);return};defer release()
  sources,e:=suwayomiSources(r.Context());if e!=nil{http.Error(w,"Source unavailable",502);return}
  m,e:=suwayomiTitle(r.Context(),id,sources,false);if e!=nil||!suwayomiAllowed(m){http.NotFound(w,r);return}
  path:=fmt.Sprintf("/api/v1/manga/%d/thumbnail",id)
@@ -59,6 +70,6 @@ func swPageHandler(w http.ResponseWriter,r *http.Request){
  i,e:=strconv.Atoi(r.PathValue("index"));if e!=nil||i<0{http.NotFound(w,r);return}
  swGrantMu.Lock();g,ok:=swGrants[r.PathValue("token")];swGrantMu.Unlock()
  if !ok||time.Now().After(g.Expires)||i>=len(g.URLs){http.NotFound(w,r);return}
- select{case swImageSlots<-struct{}{}:defer func(){<-swImageSlots}();default:http.Error(w,"Image busy",503);return}
+ release,ok:=swAcquireImage(r.Context());if !ok{w.Header().Set("Retry-After","2");http.Error(w,"Image queue busy",503);return};defer release()
  swImage(w,r,g.URLs[i],16<<20)
 }
