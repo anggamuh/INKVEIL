@@ -17,10 +17,6 @@ type dexEntity struct {
  Attributes struct {
  Title,Description map[string]string
  Tags []struct{Attributes struct{Name map[string]string}}
- Chapter *string
- TranslatedLanguage,ExternalURL string
- Pages int
- Name string
  FileName,Status,OriginalLanguage,LatestUploadedChapter string
  Year *int
  ContentRating string
@@ -33,10 +29,22 @@ type dexRelationship struct {
  ID,Type string
  Attributes struct { Name,FileName string }
 }
+type dexChapterEntity struct {
+ ID,Type string
+ Attributes struct {
+ Title *string
+ Chapter *string
+ TranslatedLanguage,ExternalURL string
+ Pages int
+ }
+ Relationships []dexRelationship
+}
+type dexChapterFeedResponse struct{Result string;Data []dexChapterEntity;Total,Offset,Limit int}
+type dexChapterDetailResponse struct{Result string;Data dexChapterEntity}
 type dexListResponse struct{Result string;Data []dexEntity;Total,Offset,Limit int}
 type dexDetailResponse struct{Result string;Data dexEntity}
 type dexChapterRow struct{ID,Number,Language,Group string}
-type dexView struct{Cards []discoveryCard;Source string;LiveError bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
+type dexView struct{Cards []discoveryCard;Source string;LiveError,ChapterError bool;LocalCount int;Items []liveTitle;Title liveTitle;Chapters []dexChapterRow;Query,Language,Kind string;Next,Prev,Offset int;HasNext,HasPrev bool}
 var dexRateMu sync.Mutex
 var dexNext time.Time
 func dexFetch(ctx context.Context,path string,q url.Values,out any)error{
@@ -94,10 +102,10 @@ func dexDetail(w http.ResponseWriter,r *http.Request){
  if detail.Data.Attributes.ContentRating!="safe"&&detail.Data.Attributes.ContentRating!="suggestive"{http.NotFound(w,r);return}
  // Sequential calls respect the provider request budget.
  timer:=time.NewTimer(400*time.Millisecond);defer timer.Stop();select{case <-timer.C:case <-r.Context().Done():return}
- var feed dexListResponse
+ var feed dexChapterFeedResponse
  e=dexFetch(r.Context(),"/manga/"+id+"/feed",url.Values{"limit":{"100"},"offset":{strconv.Itoa(offset)},"translatedLanguage[]":{lang},"contentRating[]":{"safe","suggestive"},"order[chapter]":{"desc"},"includes[]":{"scanlation_group"}},&feed)
- if e!=nil||feed.Result!="ok"||len(feed.Data)>100{liveFailure(w,e);return}
- dexCoverPolicy(w);v:=dexView{Title:dexTitle(detail.Data),Language:lang}
+ dexCoverPolicy(w);v:=dexView{Title:dexTitle(detail.Data),Language:lang,Offset:offset}
+ if e!=nil||feed.Result!="ok"||len(feed.Data)>100{if e==nil{e=fmt.Errorf("unexpected chapter feed response")};log.Printf("MangaDex chapter feed: %v",e);v.ChapterError=true;render(w,"dex_detail",v);return}
  for _,c:=range feed.Data{if !sourceUUID.MatchString(c.ID){continue};n:="Oneshot";if c.Attributes.Chapter!=nil{n=*c.Attributes.Chapter};var groups []string;for _,g:=range c.Relationships{if g.Type=="scanlation_group"&&g.Attributes.Name!=""{groups=append(groups,g.Attributes.Name)}};v.Chapters=append(v.Chapters,dexChapterRow{c.ID,n,c.Attributes.TranslatedLanguage,strings.Join(groups,", ")})}
  dexPage(&v,offset,100,feed.Total);render(w,"dex_detail",v)
 }
